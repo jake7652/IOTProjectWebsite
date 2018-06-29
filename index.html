@@ -2,19 +2,36 @@
 </head>
 <body>
 
-<p>
-Lol ok
-</p>
 <div id="separator" style="width:100%;height:5px;"></div>
 <script src="plotly-latest.min.js"></script>
 <script src="jquery-3.3.1.js"></script>
-<div id="myDiv" style="width:100%;height:400px;"></div>
+<div id="plot" style="width:100%;height:90%;"></div>
 <script>
+var MIN_MAX = { //min and max Y value for each sensor graph
+PressureTemperature: [0,120],
+Humidity: [0,100],
+HumidityHeatIndex: [0,120],
+HumidityTemperature: [0,120],
+Transducer: [0,4000],
+PressurePressure: [8.859,32.483], // conversion of the 300-1100 hPa range that the datasheet lists for the sensor
+PressureAlititude: [-500, 2000], //can go up to 9000 but i don't think we'll be going that high
 
+};
+var LABELS  = { //Y labels for each sensor graph
+HumidityTemperature: "Temperature(F)",
+PressureTemperature: "Temperature(F)",
+Humidity: "Humidity(% Saturation)",
+HumidityHeatIndex: "Heat Index(F)",
+Transducer: "Distance(cm?)",
+PressurePressure: "Pressure(Hg)",
+PressureAlititude: "Altitude(ft)", 
 
+};
+var ajaxCalls = new Array();
 function getFromSql(field,lines,async) {
 var ret = null;
-$.ajax({ url: "sqlReq.php",
+ajaxCalls[ajaxCalls.length] = 
+	 $.ajax({ url: "sqlMultReq.php",
          async: async,
 	 type: "POST",
          dataType: 'json',
@@ -22,18 +39,23 @@ $.ajax({ url: "sqlReq.php",
          success: function(output) {
 		    ret = output;
 		    
-                  }
+}
 		
 });
 return ret;
 }
-var query = getFromSql("PressureTemperature","20",false);
+
+var interval;
+var currentFields; //used to keep track of what is currently graphed so that I can use this if a user enters a custom start and end date in
+function drawPlots(fields,plotName) {
+currrentFields = fields;
+var query = getFromSql(fields,"0",false);
 var temps = query.data;
 var dates = query.time;
 var maxDate = dates[dates.length-1];
 var maxTemp = 0;
 for(var i = 0; i < dates.length; i++) {
-if(temps[i] > maxTemp) {
+if(temps[0][i] > maxTemp) {
 maxTemp = temps[i];
 }
 var tempDate = "";
@@ -41,114 +63,260 @@ tempDate = tempDate.concat (dates[i].substring(0,4), "-" , dates[i].substring(4,
 ,dates[i].substring(10,12) ,":" ,dates[i].substring(12,14));
 dates[i] = tempDate;
 }
-//alert(temps.length);
-var trace1 = {
+var x_axis = 'x';
+var y_axis = 'y';
+var traces = new Array();
+var layout = {};
+var num_rows;
+var num_cols;
+//if we wanted to draw 3 graphs then we would have 2 rows and 2 cols for graphs with the last col empty
+num_rows = Math.floor(Math.sqrt(fields.length));
+num_cols = Math.ceil(Math.sqrt(fields.length));
+var row_gap = .11;
+var col_gap = .05;
+if(fields.length == 3) {
+num_rows = 2;
+}
+var row = 0.0;
+var col = 0.0;
+for(var i = 0; i < fields.length; i++) {
+row = Math.floor(i/num_cols);
+col = Math.floor(i%num_cols);
+var tempTrace;
+if(i == 0) {
+tempTrace = {
   x: dates,
-  y: temps,
+  y: temps[i],
   type: 'scatter',
-  mode: 'lines',
-  
+  name: fields[i].split(/(?=[A-Z][a-z])/).join(" "),
+
 };
+} else {
+tempTrace = {
+  x: dates,
+  y: temps[i],
+  xaxis: x_axis.concat((i+1).toString()),
+  yaxis: y_axis.concat((i+1).toString()),
+  type: 'scatter',
+  name: fields[i].split(/(?=[A-Z][a-z])/).join(" "),
 
-var data = [ trace1 ];
-
-var layout = {
-  xaxis: {
-    type: 'date',
-    autorange: true,
-    autoscale: false,
-    rangeselector: {buttons: [
+};
+}
+traces[i] = tempTrace;
+if(i == 0) {
+layout['xaxis'] = {};
+layout['yaxis'] = {};
+layout['xaxis']['rangeselector'] = {buttons: [
     { count: 1,
-    label: '1d',
+    label: '24hrs',
     step: 'day',
     stepmode: 'backward'
     },
     { count: 7,
-    label: '1w',
+    label: '1 week',
     step: 'day',
     stepmode: 'backward'
     },
     {
     count: 1,
-    label: '1m',
+    label: '1 month',
     step: 'month',
     stepmode: 'backward'
     },
     {step: 'all'}
-    ]},
-    title: 'Date',
-    //range ['2000-01-12', '2000-01-13']
-  },
-  yaxis: {
-    title: 'Temperature',
-    range: [0,(parseInt(maxTemp)+20)], 
-    autoscale: false
-  },
-  title:'Pressure Temperature'
-};
+    ]};
+//layout['xaxis']['rangeslider'] = { height: .1};
+layout['xaxis']['domain'] = [0,(1.0/num_cols-col_gap)];
+layout['yaxis']['domain'] = [0,(1.0/num_rows-row_gap)];
+layout['yaxis']['range'] = MIN_MAX[fields[i]];
+layout['yaxis']['autoscale'] = false;
+layout['yaxis']['title'] = LABELS[fields[i]];
+layout['xaxis']['title'] = "Date";
 
-Plotly.plot('myDiv', data,layout);
+} else {
+let yAx ='yaxis'.concat((i+1).toString());
+let xAx = 'xaxis'.concat((i+1).toString()); 
+layout[yAx] = {};
+layout[xAx] = {};
+layout[xAx]['rangeselector'] = {buttons: [
+    { count: 1,
+    label: '24hrs',
+    step: 'day',
+    stepmode: 'backward'
+    },
+    { count: 7,
+    label: '1 week',
+    step: 'day',
+    stepmode: 'backward'
+    },
+    {
+    count: 1,
+    label: '1 month',
+    step: 'month',
+    stepmode: 'backward'
+    },
+    {step: 'all'}
+    ]};
+//layout[xAx]['rangeslider'] = {};
+if(row == fields.length-1) {
+layout[yAx]['domain'] = [((num_rows-1.0)/num_rows),1];
+} else {
+layout[yAx]['domain'] = [(row/num_rows),(((row+1)/num_rows)-row_gap)];
+}
+
+if(col == fields.length-1) {
+layout[xAx]['domain'] = [(((num_cols-1.0)/num_cols)+col_gap),1];
+} else {
+layout[xAx]['domain'] = [(col/num_cols),(((col+1)/num_cols)-col_gap)];
+}
+
+layout[xAx]['anchor'] = y_axis.concat((i+1).toString());
+layout[yAx]['anchor'] = x_axis.concat((i+1).toString());
+layout[yAx]['range'] = MIN_MAX[fields[i]];
+layout[yAx]['autoscale'] = false;
+layout[yAx]['title'] = LABELS[fields[i]];
+layout[xAx]['title'] = "Date";
+
+}
+
+}
+
+if(fields.length == 1) {
+layout['title'] = fields[0].split(/(?=[A-Z][a-z])/).join(" ");
+}
 
 
-function getFromSqlUpdater(field,lines,async) {
 
-$.ajax({ url: "sqlReq.php",
+Plotly.react(plotName,traces,layout);
+//drawLineGraph("Temperature(F)",new Array("PressureTemperature"),[0,.45],[0,1]);
+//drawLineGraph("Temperature(F)","Humidity",[.55,1],[0,1]);
+
+
+//intended for use as the realtime updater of the plot 
+function getFromSqlUpdater(fields,lines,async) {
+ajaxCalls[ajaxCalls.length] =
+	 $.ajax({ url: "sqlMultReq.php",
          async: async,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: [field,lines]},
+	 data: {arguments: [fields,lines]},
          success: function(output) {
-	 //alert("REQUEST");
 	 var newTemps = output.data;	 
 	 var newDates = output.time;
-	 var update = false;
+	 var update = false; //says whether or not there are new dates in database
 	 var x_update = new Array();
 	 var y_update = new Array();
+	 for(var i = 0; i < newTemps.length; i++) {
+	 y_update[i] = new Array();
+	 }
+	 //check to see if we do indeed have some new dates in the database and if there is some then we add them to the x_update and y_update arrays
 	 for(var i = 0; i < newDates.length; i++){
 	 if(parseInt(newDates[i]) > parseInt(maxDate)) {
-	maxDate = newDates[i];
+	 maxDate = newDates[i];
 	 update = true;
 	 var tempDate = "";
 	 tempDate = tempDate.concat (newDates[i].substring(0,4), "-" , newDates[i].substring(4,6) ,"-" , newDates[i].substring(6,8) ," " ,newDates[i].substring(8,10) ,":" 
 	 ,newDates[i].substring(10,12) ,":" ,newDates[i].substring(12,14));
+	 
+	 //We might be reading multiple sensors at a time so make sure to grab every updated value and store in the array.
+ 	 //i2 = sensor, i = row
+ 	 for(var i2 = 0; i2 < newTemps.length; i2++){
+	 y_update[i2][y_update[i2].length] = newTemps[i2][i];
+	 }
 	 x_update[x_update.length] = tempDate;
-	 y_update[y_update.length] = newTemps[i]; 
-	}
-	}
-	if(update == true) {
-	//alert(x_update);
-	//alert(y_update);
-	var updated_points = {
-	x: [x_update],
-	y: [y_update],
 	
-
+	  
+	}
+	}
+	//clone over the date array for every sensor and make a extendtraces array for the update function
+	var tracesArr = new Array();
+	var x_mult_update = new Array();
+  	for(var i = 0; i < newTemps.length; i++) {
+	tracesArr[i] = i;
+	x_mult_update[i] = x_update;
+	}
+	//if we have some updated points to draw on the graph then we store them in a variable and tell the graph to update
+	if(update == true) {
+	var updated_points = {
+	x: x_mult_update,
+	y: y_update,
 	} 
-	Plotly.extendTraces('myDiv',updated_points,[0]);
+
+	Plotly.extendTraces(plotName,updated_points,tracesArr);
 	
 	}
                   }
 		
 });
-	
-return ret;
+
 }
 
-var cnt = 0;
-var interval = setInterval(function() {
-getFromSqlUpdater("PressureTemperature","15",true);
-if(cnt==100) { clearInterval(interval); }
+//calls the function that is the first parameter for every second parameter millis
+interval = setInterval(function() {
+//call the function that will attempt to poll for new points in the database
+getFromSqlUpdater(fields,"15",true);
 
 },10000);
 
 
 
+}
 
-
-
+drawPlots(new Array("PressureTemperature"),"plot");
 </script>
+<script type="text/javascript">
 
-<div id="myDiv2" style="width:100%;height:400px;"></div>
+function getCheckedCheckboxesFor(checkboxName) {
+    for(var i = 0; i < ajaxCalls.length; i++) {
+	ajaxCalls[i].abort();
+    }
+    ajaxCalls = [];
+    clearInterval(interval);
+    var checkboxes = document.querySelectorAll('input[name="' + checkboxName + '"]:checked'), values = [];
+    Array.prototype.forEach.call(checkboxes, function(el) {
+        values.push(el.value);
+    });
+    drawPlots(values,"plot");
+    return values;
+    
+}
+</script>
+<p>
+Select measurements to graph:
+</p>
+<div class="data">    
+    <span>
+    <input name="sensor" type="checkbox" value="PressureTemperature"/>
+    <label for="sensor">Temperature</label>
+    </span> 
+
+    <span>
+    <input name="sensor" type="checkbox" value="PressurePressure"/>
+    <label for="sensor">Pressure</label>
+    </span>
+    
+    <span>
+    <input name="sensor" type="checkbox" value="PressureAlititude"/>
+    <label for="sensor">Altitude</label>
+    </span>
+
+    <span>
+    <input name="sensor" type="checkbox" value="Humidity"/>
+    <label for="sensor">Humidity</label>
+    </span>    
+    
+    <span>
+    <input name="sensor" type="checkbox" value="HumidityHeatIndex"/>
+    <label for="sensor">Heat Index</label>
+    </span>
+
+    <span>
+    <input name="sensor" type="checkbox" value="Transducer"/>
+    <label for="sensor">Distance</label>
+    </span>    
+
+    <input type="button" onclick="getCheckedCheckboxesFor('sensor');" value="Graph Values" />
+</div>
 
 
 
