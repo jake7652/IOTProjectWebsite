@@ -157,7 +157,7 @@ layout['xaxis']['domain'] = [0,(1.0/num_cols-col_gap)]; //set the width constrai
 layout['yaxis']['domain'] = [0,(1.0/num_rows-row_gap)]; //set the height constraint of the first graph
 layout['xaxis']['range'] = domain; //set the domain or min and max values of the xaxis for the first graph
 layout['yaxis']['range'] = MIN_MAX[fields[i]]; //set min and max values for the yaxis of the first graph
-layout['yaxis']['autoscale'] = false; // by default do not autoscale the graph
+//layout['yaxis']['autoscale'] = true; // by default do not autoscale the graph
 layout['yaxis']['title'] = LABELS[fields[i]]; //set the label on the yaxis for the first graph
 layout['xaxis']['title'] = "Date"; //set the label for the xaxis of the first graph
 
@@ -203,7 +203,7 @@ layout[xAx]['range'] = domain; //set the min and max x values for all subplots b
 layout[xAx]['anchor'] = y_axis.concat((i+1).toString()); //set the x anchor of the subplot
 layout[yAx]['anchor'] = x_axis.concat((i+1).toString()); //set the y anchor of the subplot
 layout[yAx]['range'] = MIN_MAX[fields[i]]; //set the min and max values of the y axis of the subplot
-layout[yAx]['autoscale'] = false; //by default the subplot does not autoscale
+//layout[yAx]['autoscale'] = true; //by default the subplot does not autoscale
 layout[yAx]['title'] = LABELS[fields[i]]; //set the label of the y axis 
 layout[xAx]['title'] = "Date"; //set the label of the x axis
 
@@ -215,11 +215,9 @@ if(fields.length == 1) {
 layout['title'] = fields[0].split(/(?=[A-Z][a-z])/).join(" ");
 }
 
-
-//actually draw the plot and subplots. Using react since this is supposed to be more efficient than doing newPlot every time if it's on the same div
-Plotly.react(plotName,traces,layout);
-//drawLineGraph("Temperature(F)",new Array("PressureTemperature"),[0,.45],[0,1]);
-//drawLineGraph("Temperature(F)","Humidity",[.55,1],[0,1]);
+//Draw a new plot every time there is a call made to the function. 
+//React is more efficient but I was experiencing some unusual behavior with the subplots when using it so I had to use newPlot instead
+Plotly.newPlot(plotName,traces,layout);
 
 
 //realtime updater of the plot 
