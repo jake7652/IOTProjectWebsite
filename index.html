@@ -15,16 +15,17 @@ HumidityTemperature: [0,120],
 Transducer: [0,4000],
 PressurePressure: [8.859,32.483], // conversion of the 300-1100 hPa range that the datasheet lists for the sensor
 PressureAlititude: [-500, 2000], //can go up to 9000 but i don't think we'll be going that high
-
+Temperature1: [0,120],
 };
 var LABELS  = { //Y labels for each sensor graph
 HumidityTemperature: "Temperature(F)",
-PressureTemperature: "Temperature(F)",
+PressureTemperature: "Air Temperature(F)",
 Humidity: "Humidity(% Saturation)",
 HumidityHeatIndex: "Heat Index(F)",
 Transducer: "Distance(cm?)",
 PressurePressure: "Pressure(Hg)",
 PressureAlititude: "Altitude(ft)", 
+Temperature1: "Water Temperature(F)",
 
 };
 var ajaxCalls = new Array();
@@ -47,7 +48,7 @@ return ret;
 
 var interval;
 var currentFields; //used to keep track of what is currently graphed so that I can use this if a user enters a custom start and end date in
-function drawPlots(fields,plotName) {
+function drawPlots(fields,plotName,domain) {
 currrentFields = fields;
 var query = getFromSql(fields,"0",false);
 var temps = query.data;
@@ -72,11 +73,12 @@ var num_cols;
 //if we wanted to draw 3 graphs then we would have 2 rows and 2 cols for graphs with the last col empty
 num_rows = Math.floor(Math.sqrt(fields.length));
 num_cols = Math.ceil(Math.sqrt(fields.length));
-var row_gap = .11;
-var col_gap = .05;
-if(fields.length == 3) {
-num_rows = 2;
+if((num_rows*num_cols) < fields.length) {
+num_rows++;
 }
+var row_gap = .2;
+var col_gap = .11;
+
 var row = 0.0;
 var col = 0.0;
 for(var i = 0; i < fields.length; i++) {
@@ -89,6 +91,7 @@ tempTrace = {
   y: temps[i],
   type: 'scatter',
   name: fields[i].split(/(?=[A-Z][a-z])/).join(" "),
+  connectgaps: true,
 
 };
 } else {
@@ -99,7 +102,7 @@ tempTrace = {
   yaxis: y_axis.concat((i+1).toString()),
   type: 'scatter',
   name: fields[i].split(/(?=[A-Z][a-z])/).join(" "),
-
+  connectgaps: true,
 };
 }
 traces[i] = tempTrace;
@@ -128,6 +131,7 @@ layout['xaxis']['rangeselector'] = {buttons: [
 //layout['xaxis']['rangeslider'] = { height: .1};
 layout['xaxis']['domain'] = [0,(1.0/num_cols-col_gap)];
 layout['yaxis']['domain'] = [0,(1.0/num_rows-row_gap)];
+layout['xaxis']['range'] = domain;
 layout['yaxis']['range'] = MIN_MAX[fields[i]];
 layout['yaxis']['autoscale'] = false;
 layout['yaxis']['title'] = LABELS[fields[i]];
@@ -170,6 +174,7 @@ layout[xAx]['domain'] = [(((num_cols-1.0)/num_cols)+col_gap),1];
 layout[xAx]['domain'] = [(col/num_cols),(((col+1)/num_cols)-col_gap)];
 }
 
+layout[xAx]['range'] = domain;
 layout[xAx]['anchor'] = y_axis.concat((i+1).toString());
 layout[yAx]['anchor'] = x_axis.concat((i+1).toString());
 layout[yAx]['range'] = MIN_MAX[fields[i]];
@@ -262,7 +267,7 @@ getFromSqlUpdater(fields,"15",true);
 
 }
 
-drawPlots(new Array("PressureTemperature"),"plot");
+drawPlots(new Array("PressureTemperature"),"plot",[]);
 </script>
 <script type="text/javascript">
 
@@ -287,8 +292,13 @@ Select measurements to graph:
 <div class="data">    
     <span>
     <input name="sensor" type="checkbox" value="PressureTemperature"/>
-    <label for="sensor">Temperature</label>
+    <label for="sensor">Air Temperature</label>
     </span> 
+    
+    <span>
+    <input name="sensor" type="checkbox" value="Temperature1"/>
+    <label for="sensor">Water Temperature</label>
+    </span>
 
     <span>
     <input name="sensor" type="checkbox" value="PressurePressure"/>
@@ -318,8 +328,24 @@ Select measurements to graph:
     <input type="button" onclick="getCheckedCheckboxesFor('sensor');" value="Graph Values" />
 </div>
 
+<script>
+function goTo()
+{
+    var start = document.getElementById('start_time').value;
+    var end = document.getElementById('end_time').value;
+    alert(start);
+    alert(end);
+}
+</script>
 
-
-
+<p>
+Select custom timerange to graph:
+</p>
+<input type="text" id='start_time' placeholder="Start Time"/>
+<span>
+to
+</span>
+<input type='text' id='end_time' placeholder="End Time">
+<input type='button' id='link_str' value='Graph' onClick='goTo()'>
 
 </body>
