@@ -293,9 +293,9 @@ ajaxCalls[ajaxCalls.length] =
 interval = setInterval(function() {
 //call the function that will attempt to poll for new points in the database
 //asks for the last 15 lines of the database asyncronously so that this does not freeze the website
-getFromSqlUpdater(fields,"15",true);
+getFromSqlUpdater(fields,"90",true);
 
-},10000); //call the updater function every 10 seconds
+},60000); //call the updater function every 60 seconds
 
 
 
