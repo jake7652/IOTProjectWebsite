@@ -8,6 +8,9 @@
 <!-- Main Plot element div. -->
 <div id="plot" style="width:100%;height:85%;"></div>
 <script>
+var windowWidth = window.innerWidth; //used for setting the graph's size
+var windowHeight = window.innerHeight; //used for setting the graph's size
+
 var MIN_MAX = { //min and max Y value for each sensor graph
 PressureTemperature: [0,120],
 Humidity: [0,100],
@@ -157,7 +160,8 @@ layout['xaxis']['domain'] = [0,(1.0/num_cols-col_gap)]; //set the width constrai
 layout['yaxis']['domain'] = [0,(1.0/num_rows-row_gap)]; //set the height constraint of the first graph
 layout['xaxis']['range'] = domain; //set the domain or min and max values of the xaxis for the first graph
 layout['yaxis']['range'] = MIN_MAX[fields[i]]; //set min and max values for the yaxis of the first graph
-//layout['yaxis']['autoscale'] = true; // by default do not autoscale the graph
+//layout['xaxis']['autorange'] = false; // by default do not autoscale the graph
+//layout['yaxis']['autorange'] = false; // by default do not autoscale the graph
 layout['yaxis']['title'] = LABELS[fields[i]]; //set the label on the yaxis for the first graph
 layout['xaxis']['title'] = "Date"; //set the label for the xaxis of the first graph
 
@@ -203,7 +207,8 @@ layout[xAx]['range'] = domain; //set the min and max x values for all subplots b
 layout[xAx]['anchor'] = y_axis.concat((i+1).toString()); //set the x anchor of the subplot
 layout[yAx]['anchor'] = x_axis.concat((i+1).toString()); //set the y anchor of the subplot
 layout[yAx]['range'] = MIN_MAX[fields[i]]; //set the min and max values of the y axis of the subplot
-//layout[yAx]['autoscale'] = true; //by default the subplot does not autoscale
+//layout[xAx]['autorange'] = false; //by default the subplot does not autoscale
+//layout[yAx]['autorange'] = false; //by default the subplot does not autoscale
 layout[yAx]['title'] = LABELS[fields[i]]; //set the label of the y axis 
 layout[xAx]['title'] = "Date"; //set the label of the x axis
 
@@ -214,6 +219,11 @@ layout[xAx]['title'] = "Date"; //set the label of the x axis
 if(fields.length == 1) {
 layout['title'] = fields[0].split(/(?=[A-Z][a-z])/).join(" ");
 }
+
+//set the size of the graph area. This helps for when the graph is downloaded as a png so the image is the proper resolution.
+layout['autosize'] = false; 
+layout['width'] = windowWidth;
+layout['height'] = (windowHeight*.8); //the 5% difference here from the div's height is intentional to prevent the graph from cutting off text under it 
 
 //Draw a new plot every time there is a call made to the function. 
 //React is more efficient but I was experiencing some unusual behavior with the subplots when using it so I had to use newPlot instead
