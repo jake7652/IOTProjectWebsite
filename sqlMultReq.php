@@ -1,4 +1,11 @@
 <?php
+///////////////////////////////////////// SQL COMMAND NOTE //////////////////////////////////////////
+//This query: SELECT * FROM DataTable WHERE STR_TO_DATE(RTCDataTime, '%Y%m%e%H%i%s') >= '2000-01-23 00:00:00' AND STR_TO_DATE(RTCDataTime, '%Y%m%e%H%i%s') <= '2000-01-24 00:00:00';
+//Will return all rows in the database in between the first argument and the second argument's date 
+//Much like the graph, you do not need to specify the last 3 numbers of hour, minute, second and the format is the same as the graph accepts, so adapting this for the website would be relatively simple
+//The min and max times could be input as parameters, but this will very easily go over 10000 rows if this command is not added onto the other with the limit
+
+
 //setting header to json
 header('Content-Type: application/json');
 
@@ -119,6 +126,6 @@ $time_result->close();
 //close connection
 $mysqli->close();
 
-//now print/return the data
+//now print or return the data
 echo json_encode($ret);
 ?>
