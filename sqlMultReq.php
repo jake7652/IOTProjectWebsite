@@ -4,7 +4,8 @@
 //Will return all rows in the database in between the first argument and the second argument's date 
 //Much like the graph, you do not need to specify the last 3 numbers of hour, minute, second and the format is the same as the graph accepts, so adapting this for the website would be relatively simple
 //The min and max times could be input as parameters, but this will very easily go over 10000 rows if this command is not added onto the other with the limit
-
+// This query: "SELECT * FROM ( SELECT @row := @row +1 AS rownum, " . $fields[$i] . " FROM ( SELECT @row :=0) r, DataTable ) ranked WHERE rownum % " . $interval . " = 1 AND STR_TO_DATE(RTCDataTime, '%Y%m%e%H%i%s') >= '2000-01-23 00:00:00' AND STR_TO_DATE(RTCDataTime, '%Y%m%e%H%i%s') <= '2000-01-24 00:00:00'";
+//The above query should combine the two so that there can be a row limit and timerange in one query, but of course there does need to be a $i,$interval, and $fields
 
 //setting header to json
 header('Content-Type: application/json');
