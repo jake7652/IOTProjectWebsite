@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+table, td {
+    border: 1px solid black;
+}
+</style>
+</head>
+<body>
+
+<p>Click the button to add a new row at the first position of the table and then add cells and content.</p>
+
+<table id="myTable">
+  <tr>
+    <td>Sensor</td>
+    <td>Value</td>
+    <td>Unit</td>
+    <td>Date</td>
+  </tr>
+</table>
+<br>
+
+
+<!-- offline soruce for jquery used for calling php script from javascript -->
+<script src="jquery-3.3.1.js"></script>
+<script>
+var UNITS = { //Y labels for each sensor graph
+HumidityTemperature: "F",
+PressureTemperature: "F",
+Humidity: "% Saturation",
+HumidityHeatIndex: "F",
+Transducer: "cm?",
+PressurePressure: "Hg",
+PressureAlititude: "ft", 
+Temperature1: "F",
+
+};
+var LABELS  = { //Y labels for each sensor graph
+HumidityTemperature: "Humidity Temperature",
+PressureTemperature: "Pressure Temperature",
+Humidity: "Humidity",
+HumidityHeatIndex: "Heat Index",
+Transducer: "Distance",
+PressurePressure: "Pressure",
+PressureAlititude: "Altitude", 
+Temperature1: "Water Temperature",
+
+};
+
+var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
+//ajax call using jquery to sqlMult req for the fields in the database for N lines 
+function getFromSql(field,lines,async) {
+var ret = null;
+ajaxCalls[ajaxCalls.length] = 
+	 $.ajax({ url: "sqlMultReq.php",
+         async: async,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [field,lines]},
+         success: function(output) {
+		    ret = output;
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+var fields = new Array("HumidityTemperature","PressureTemperature","Humidity","HumidityHeatIndex","Transducer","PressurePressure","PressureAlititude","Temperature1");
+var table = document.getElementById("myTable");
+var readings = getFromSql(fields,1,false);
+var sensorRows = new Array();
+for(var i = 0; i < fields.length; i++) {
+    var numRows = table.rows.length;
+    sensorRows[i] = table.insertRow(numRows);
+    var sensorC = sensorRows[i].insertCell(0);
+    var valueC = sensorRows[i].insertCell(1);
+    var unitC = sensorRows[i].insertCell(2);
+    var dateC = sensorRows[i].insertCell(3);
+    sensorC.innerHTML = LABELS[fields[i]];
+    valueC.innerHTML = readings.data[i];
+    unitC.innerHTML = UNITS[fields[i]];
+    dateC.innerHTML = readings.time[0];
+    
+
+
+}
+
+function tableSqlUpdate(field,lines,async) {
+var ret = null;
+ajaxCalls[ajaxCalls.length] = 
+	 $.ajax({ url: "sqlMultReq.php",
+         async: async,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [field,lines]},
+         success: function(output) {
+	 for(var i = 0; i < fields.length; i++) {
+   	 alert("update reeeee");
+         table.rows[i+1].cells[1].innerHTML = output.data[i];
+         table.rows[i+1].cells[3].innerHTML = output.time[0];   
+	 }
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+setInterval(function(){
+for(var i = 0; i < ajaxCalls.length; i ++){
+ajaxCalls[i].abort();
+
+}
+ajaxCalls = [];
+tableSqlUpdate(fields,1,true);
+
+}, 10000);
+
+///alert(table.rows.length);
+
+
+
+</script>
+
+</body>
+</html>
