@@ -2,15 +2,20 @@
 <html>
 <!-- offline source for jquery used for calling php script from javascript -->
 <script src="jquery-3.3.1.js"></script>
-<script src="/jquery-ui/jquery-ui.min.js"></script>
-<link rel="stylesheet" href="/jquery-ui/jquery-ui.min.css">
-<script src="/DataTables/datatables.min.js"></script>
-<link rel="stylesheet" href="/DataTables/datatables.min.css">
+<script src="/jquery-ui-1.12.1/jquery-ui.js"></script>
+<link rel="stylesheet" href="/jquery-ui-1.12.1/jquery-ui.css">
+<script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
 <head>
+<style>
+table, td {
+    border: 1px solid black;
+}
+</style>
 </head>
 <body>
 
-<p>Realtime sensor readings table</p>
+<p>Click the button to add a new row at the first position of the table and then add cells and content.</p>
 
 <table id="sensorsTable" class="display" style="width:100%">
   <thead>
@@ -209,76 +214,7 @@ function sliderTimeQuery(time, async) {
 });
 return ret; //return the result of the ajax call
 }
-var firstDate = sqlToSlider(firstTimeQuery(false)[timeField]);
-var lastDate = sqlToSlider(getFromSql(timeField,1,false)[timeField]);
 
-var currentTime = "00:00:00"; 
-  $(function() {
-    $( "#slider-range" ).slider({
-      range: false,
-      min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000),
-      max: lastDate.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000),
-      step: 1,
-      values: [firstDate],
-      slide: function( event, ui ) {
-        $( "#amount" ).val( (new Date(ui.values[ 0 ] ).toDateString() )); //+ " - " + (new Date(ui.values[ 1 ] //*1000)).toDateString() );
-	currentDate = new Date(ui.value ) ;
-      },
-      stop : function (event, ui) {
-	if(currentUpdate != false) {
-	currentUpdate.abort();
-	
-	}
-	updatesPaused = true; 
- 	
-	
-	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
-	
-	 for(var i = 0; i < fields.length; i++) {
-	 var tempData = table.row(i).data();
-         tempData[1] = timeOutput[fields[i]];
-         tempData[3] = sqlToTable(timeOutput[timeField]);  
-	 table.row(i).data(tempData);
-	 }
-	}
-    });
-    $( "#amount" ).val(firstDate.toDateString()); 
-    // + " - " + (new Date($( "#slider-range" ).slider( "values", 1 //)*1000)).toDateString());
-  });
-$(function() {
-    $("#slider-range-hours").slider({
-        range: false,
-        min: 0,
-        max: 86400,
-        step: 1,
-        slide: function(e, ui) {
-            var hours = Math.floor(ui.value / 60 / 60);
-            var minutes = Math.floor(ui.value/60) - (hours * 60);
-	    var seconds = ui.value - (minutes * 60) - (hours * 60 * 60);
-
-            if(hours.toString().length == 1) hours = '0' + hours;
-            if(minutes.toString().length == 1) minutes = '0' + minutes;
-	    if(seconds.toString().length == 1) seconds = '0' + seconds;
-            $('#hoursmins').val(hours+':'+minutes+':'+seconds);
-	    currentTime = hours+':'+minutes+':'+seconds;
-        },
-	stop: function(e, ui) {
-	if(currentUpdate != false) {
-	currentUpdate.abort();
-	
-	}
-	updatesPaused = true;
-	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
-	 for(var i = 0; i < fields.length; i++) {
-	 var tempData = table.row(i).data();
-         tempData[1] = timeOutput[fields[i]];
-         tempData[3] = sqlToTable(timeOutput[timeField]);  
-	 table.row(i).data(tempData); 
-	 }
-	}
-    });
-$( "#hoursmins" ).val("00:00:00"); 
-});
 
 
 </script>
