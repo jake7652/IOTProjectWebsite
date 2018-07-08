@@ -1,5 +1,10 @@
 <!DOCTYPE html>
 <html>
+<!-- offline soruce for jquery used for calling php script from javascript -->
+<script src="jquery-3.3.1.js"></script>
+<script src="/jquery-ui-1.12.1/jquery-ui.js"></script>
+<link rel="stylesheet" href="/jquery-ui-1.12.1/jquery-ui.css">
+
 <head>
 <style>
 table, td {
@@ -11,7 +16,7 @@ table, td {
 
 <p>Click the button to add a new row at the first position of the table and then add cells and content.</p>
 
-<table id="myTable">
+<table id="sensorsTable">
   <tr>
     <td>Sensor</td>
     <td>Value</td>
@@ -21,9 +26,23 @@ table, td {
 </table>
 <br>
 
+<p>
+  <label for="amount">Date range:</label>
+  <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
+</p>
+ 
+<div id="slider-range"></div>
 
-<!-- offline soruce for jquery used for calling php script from javascript -->
-<script src="jquery-3.3.1.js"></script>
+<p>
+  <label for="hoursmins">Time range:</label>
+  <input type="text" id="hoursmins" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
+</p>
+<div id="slider-range-hours"></div>
+
+<br>
+
+<input type='button' id='link_str' value='Reset Back to Current Readings' onClick='resetTime()'>
+
 <script>
 var UNITS = { //Y labels for each sensor graph
 HumidityTemperature: "F",
@@ -48,16 +67,14 @@ Temperature1: "Water Temperature",
 
 };
 
-var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
 //ajax call using jquery to sqlMult req for the fields in the database for N lines 
 function getFromSql(field,lines,async) {
 var ret = null;
-ajaxCalls[ajaxCalls.length] = 
-	 $.ajax({ url: "sqlMultReq.php",
+	 $.ajax({ url: "TableReq.php",
          async: async,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: [field,lines]},
+	 data: {arguments: []}, //no arguments needed for this php 
          success: function(output) {
 		    ret = output;
 		    
@@ -67,8 +84,35 @@ ajaxCalls[ajaxCalls.length] =
 return ret; //return the result of the ajax call
 }
 
+
+function sqlToTable(date) {
+
+return "".concat (date.substring(0,4), "-" , date.substring(4,6) ,"-" , date.substring(6,8) ," " ,date.substring(8,10) ,":" ,date.substring(10,12) ,":" ,date.substring(12,14));
+}
+
+function tableToSql(date) {
+
+return "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
+
+}
+
+function sliderToSql(date,time) {
+
+//have to do some formatting using concat and some nested condensed if elses
+return "".concat(date.getFullYear(),(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),((date.getDate()<10) ? '0' +date.getDate() : date.getDate()),time.substring(0,2),time.substring(3,5),time.substring(6,8));
+//return date.getFullYear();
+}
+
+
+function sqlToSlider(date) {
+var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
+
+return new Date(formatted);
+}
+
 var fields = new Array("HumidityTemperature","PressureTemperature","Humidity","HumidityHeatIndex","Transducer","PressurePressure","PressureAlititude","Temperature1");
-var table = document.getElementById("myTable");
+var timeField = "RTCDataTime";
+var table = document.getElementById("sensorsTable");
 var readings = getFromSql(fields,1,false);
 var sensorRows = new Array();
 for(var i = 0; i < fields.length; i++) {
@@ -79,49 +123,160 @@ for(var i = 0; i < fields.length; i++) {
     var unitC = sensorRows[i].insertCell(2);
     var dateC = sensorRows[i].insertCell(3);
     sensorC.innerHTML = LABELS[fields[i]];
-    valueC.innerHTML = readings.data[i];
+    valueC.innerHTML = readings[fields[i]];
     unitC.innerHTML = UNITS[fields[i]];
-    dateC.innerHTML = readings.time[0];
-    
-
+    dateC.innerHTML = sqlToTable(readings[timeField]);
+   
 
 }
 
-function tableSqlUpdate(field,lines,async) {
-var ret = null;
-ajaxCalls[ajaxCalls.length] = 
-	 $.ajax({ url: "sqlMultReq.php",
+var currentUpdate = false;
+function tableSqlUpdate(field,lines,async) { 
+	 currentUpdate = $.ajax({ url: "TableReq.php",
          async: async,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: [field,lines]},
+	 data: {arguments: []}, //no arguments needed for this
          success: function(output) {
 	 for(var i = 0; i < fields.length; i++) {
-   	 alert("update reeeee");
-         table.rows[i+1].cells[1].innerHTML = output.data[i];
-         table.rows[i+1].cells[3].innerHTML = output.time[0];   
+         table.rows[i+1].cells[1].innerHTML = output[fields[i]];
+         table.rows[i+1].cells[3].innerHTML = sqlToTable(output[timeField]);   
 	 }
+	 finished = true; //check if ajax call is done so we can check before trying another
+		    
+}
+		
+});
+return finished; //return the result of the ajax call
+}
+
+
+
+
+
+var doneUpdating = true;
+
+var updatesPaused = false;
+setInterval(function(){
+if(doneUpdating == true && !updatesPaused) {
+doneUpdating = tableSqlUpdate(fields,1,true);
+}
+}, 10000);
+
+
+function resetTime() {
+tableSqlUpdate(fields,1,false);
+updatesPaused = false;
+}
+
+
+function firstTimeQuery(async) { 
+	 ret = null;
+	 $.ajax({ url: "FirstTimeReq.php",
+         async: async,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: []}, //no arguments needed for this
+         success: function(output) {
+	 ret = output;
+	 
 		    
 }
 		
 });
 return ret; //return the result of the ajax call
 }
-setInterval(function(){
-for(var i = 0; i < ajaxCalls.length; i ++){
-ajaxCalls[i].abort();
-
+function sliderTimeQuery(time, async) { 
+	 ret = null;
+	 $.ajax({ url: "SliderReq.php",
+         async: async,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [ time ]},
+         success: function(output) {
+	 ret = output;
+	 
+		    
 }
-ajaxCalls = [];
-tableSqlUpdate(fields,1,true);
+		
+});
+return ret; //return the result of the ajax call
+}
 
-}, 10000);
 
-///alert(table.rows.length);
+var firstDate = sqlToSlider(firstTimeQuery(false)[timeField]);
+var lastDate = sqlToSlider(getFromSql(timeField,1,false)[timeField]);
 
+var currentDate = new Date('2015-04-01T12:00:00Z').getTime();
+var currentTime = "00:00:00"; 
+  $(function() {
+    $( "#slider-range" ).slider({
+      range: false,
+      min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000),
+      max: lastDate.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000),
+      step: 1,
+      values: [firstDate],
+      slide: function( event, ui ) {
+        $( "#amount" ).val( (new Date(ui.values[ 0 ] ).toDateString() )); //+ " - " + (new Date(ui.values[ 1 ] //*1000)).toDateString() );
+	currentDate = new Date(ui.value ) ;
+      },
+      stop : function (event, ui) {
+	if(currentUpdate != false) {
+	currentUpdate.abort();
+	
+	}
+	updatesPaused = true; 
+ 	
+	
+	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
+	
+	 for(var i = 0; i < fields.length; i++) {
+         table.rows[i+1].cells[1].innerHTML = timeOutput[fields[i]];
+         table.rows[i+1].cells[3].innerHTML = sqlToTable(timeOutput[timeField]);   
+	 }
+	}
+    });
+    $( "#amount" ).val(firstDate.toDateString()); 
+    // + " - " + (new Date($( "#slider-range" ).slider( "values", 1 //)*1000)).toDateString());
+  });
+$(function() {
+    $("#slider-range-hours").slider({
+        range: false,
+        min: 0,
+        max: 86400,
+        step: 1,
+        slide: function(e, ui) {
+            var hours = Math.floor(ui.value / 60 / 60);
+            var minutes = Math.floor(ui.value/60) - (hours * 60);
+	    var seconds = ui.value - (minutes * 60) - (hours * 60 * 60);
+
+            if(hours.toString().length == 1) hours = '0' + hours;
+            if(minutes.toString().length == 1) minutes = '0' + minutes;
+	    if(seconds.toString().length == 1) seconds = '0' + seconds;
+            $('#hoursmins').val(hours+':'+minutes+':'+seconds);
+	    currentTime = hours+':'+minutes+':'+seconds;
+        },
+	stop: function(e, ui) {
+	if(currentUpdate != false) {
+	currentUpdate.abort();
+	
+	}
+	updatesPaused = true;
+	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
+	 for(var i = 0; i < fields.length; i++) {
+         table.rows[i+1].cells[1].innerHTML = timeOutput[fields[i]];
+         table.rows[i+1].cells[3].innerHTML = sqlToTable(timeOutput[timeField]);   
+	 }
+	}
+    });
+$( "#hoursmins" ).val("00:00:00"); 
+});
 
 
 </script>
+
+
+
 
 </body>
 </html>
