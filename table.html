@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html>
-<!-- offline soruce for jquery used for calling php script from javascript -->
+<!-- offline source for jquery used for calling php script from javascript -->
 <script src="jquery-3.3.1.js"></script>
-<script src="/jquery-ui-1.12.1/jquery-ui.js"></script>
-<link rel="stylesheet" href="/jquery-ui-1.12.1/jquery-ui.css">
-
+<script src="/jquery-ui/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="/jquery-ui/jquery-ui.min.css">
+<script src="/DataTables/datatables.min.js"></script>
+<link rel="stylesheet" href="/DataTables/datatables.min.css">
 <head>
 <style>
 table, td {
@@ -14,15 +15,21 @@ table, td {
 </head>
 <body>
 
-<p>Click the button to add a new row at the first position of the table and then add cells and content.</p>
+<p>Realtime sensor readings table</p>
 
-<table id="sensorsTable">
+<table id="sensorsTable" class="display" style="width:100%">
+  <thead>
   <tr>
-    <td>Sensor</td>
-    <td>Value</td>
-    <td>Unit</td>
-    <td>Date</td>
+    <th>Sensor</th>
+    <th>Value</th>
+    <th>Unit</th>
+    <th>Date</th>
   </tr>
+</thead>
+<tbody>
+
+
+</tbody>
 </table>
 <br>
 
@@ -51,7 +58,7 @@ Humidity: "% Saturation",
 HumidityHeatIndex: "F",
 Transducer: "cm?",
 PressurePressure: "Hg",
-PressureAlititude: "ft", 
+PressureAlititude: "FT", 
 Temperature1: "F",
 
 };
@@ -110,23 +117,26 @@ var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.s
 return new Date(formatted);
 }
 
+$(document).ready( function () {
+    $('#sensorsTable').DataTable();
+} );
+
+var table = $('#sensorsTable').DataTable();
+
+
 var fields = new Array("HumidityTemperature","PressureTemperature","Humidity","HumidityHeatIndex","Transducer","PressurePressure","PressureAlititude","Temperature1");
 var timeField = "RTCDataTime";
-var table = document.getElementById("sensorsTable");
+//var table = document.getElementById("sensorsTable");
 var readings = getFromSql(fields,1,false);
 var sensorRows = new Array();
 for(var i = 0; i < fields.length; i++) {
-    var numRows = table.rows.length;
-    sensorRows[i] = table.insertRow(numRows);
-    var sensorC = sensorRows[i].insertCell(0);
-    var valueC = sensorRows[i].insertCell(1);
-    var unitC = sensorRows[i].insertCell(2);
-    var dateC = sensorRows[i].insertCell(3);
-    sensorC.innerHTML = LABELS[fields[i]];
-    valueC.innerHTML = readings[fields[i]];
-    unitC.innerHTML = UNITS[fields[i]];
-    dateC.innerHTML = sqlToTable(readings[timeField]);
-   
+table.row.add( [
+LABELS[fields[i]],
+readings[fields[i]],
+UNITS[fields[i]],
+sqlToTable(readings[timeField]) 
+]
+).draw(true);
 
 }
 
@@ -139,8 +149,10 @@ function tableSqlUpdate(field,lines,async) {
 	 data: {arguments: []}, //no arguments needed for this
          success: function(output) {
 	 for(var i = 0; i < fields.length; i++) {
-         table.rows[i+1].cells[1].innerHTML = output[fields[i]];
-         table.rows[i+1].cells[3].innerHTML = sqlToTable(output[timeField]);   
+         var tempData = table.row(i).data();
+	 tempData[1] = output[fields[i]];
+	 tempData[3] = sqlToTable(output[timeField]); 
+         table.row(i).data(tempData); 
 	 }
 	 finished = true; //check if ajax call is done so we can check before trying another
 		    
@@ -202,12 +214,9 @@ function sliderTimeQuery(time, async) {
 });
 return ret; //return the result of the ajax call
 }
-
-
 var firstDate = sqlToSlider(firstTimeQuery(false)[timeField]);
 var lastDate = sqlToSlider(getFromSql(timeField,1,false)[timeField]);
 
-var currentDate = new Date('2015-04-01T12:00:00Z').getTime();
 var currentTime = "00:00:00"; 
   $(function() {
     $( "#slider-range" ).slider({
@@ -231,8 +240,10 @@ var currentTime = "00:00:00";
 	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
 	
 	 for(var i = 0; i < fields.length; i++) {
-         table.rows[i+1].cells[1].innerHTML = timeOutput[fields[i]];
-         table.rows[i+1].cells[3].innerHTML = sqlToTable(timeOutput[timeField]);   
+	 var tempData = table.row(i).data();
+         tempData[1] = timeOutput[fields[i]];
+         tempData[3] = sqlToTable(timeOutput[timeField]);  
+	 table.row(i).data(tempData);
 	 }
 	}
     });
@@ -264,8 +275,10 @@ $(function() {
 	updatesPaused = true;
 	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
 	 for(var i = 0; i < fields.length; i++) {
-         table.rows[i+1].cells[1].innerHTML = timeOutput[fields[i]];
-         table.rows[i+1].cells[3].innerHTML = sqlToTable(timeOutput[timeField]);   
+	 var tempData = table.row(i).data();
+         tempData[1] = timeOutput[fields[i]];
+         tempData[3] = sqlToTable(timeOutput[timeField]);  
+	 table.row(i).data(tempData); 
 	 }
 	}
     });
