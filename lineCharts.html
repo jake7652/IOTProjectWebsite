@@ -32,6 +32,13 @@ PressureAlititude: "Altitude(ft)",
 Temperature1: "Water Temperature(F)",
 
 };
+
+//This is used so that we can request a specific graph to be made when redirecting to the page from the table display page for instance
+var sensor = "PressureTemperature";
+if(sessionStorage.getItem('sensor') != null) {
+sensor = sessionStorage.getItem('sensor');
+} 
+
 var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
 //ajax call using jquery to sqlMult req for the fields in the database for N lines 
 function getFromSql(field,lines,async) {
@@ -155,7 +162,8 @@ layout['xaxis']['rangeselector'] = {buttons: [
     },
     {step: 'all'} //all data button
     ]};
-//layout['xaxis']['rangeslider'] = { height: .1};
+//layout['xaxis']['rangeslider'] = {range: domain, height: 5};
+//layout['xaxis']['type'] = 'date';
 layout['xaxis']['domain'] = [0,(1.0/num_cols-col_gap)]; //set the width constraint of the first graph
 layout['yaxis']['domain'] = [0,(1.0/num_rows-row_gap)]; //set the height constraint of the first graph
 layout['xaxis']['range'] = domain; //set the domain or min and max values of the xaxis for the first graph
@@ -190,7 +198,8 @@ layout[xAx]['rangeselector'] = {buttons: [
     },
     {step: 'all'} //all data button
     ]};
-//layout[xAx]['rangeslider'] = {};
+//layout[xAx]['rangeslider'] = {range: domain, height: 5};
+//layout[xAx]['type'] = 'date';
 if(row == fields.length-1) { 
 layout[yAx]['domain'] = [((num_rows-1.0)/num_rows),1]; //for the last row the y constraint does not need the row gap
 } else {
@@ -211,6 +220,7 @@ layout[yAx]['range'] = MIN_MAX[fields[i]]; //set the min and max values of the y
 //layout[yAx]['autorange'] = false; //by default the subplot does not autoscale
 layout[yAx]['title'] = LABELS[fields[i]]; //set the label of the y axis 
 layout[xAx]['title'] = "Date"; //set the label of the x axis
+
 
 }
 
@@ -301,7 +311,7 @@ getFromSqlUpdater(fields,"90",true);
 
 } //end drawPlots function
 
-drawPlots(new Array("PressureTemperature"),"plot",[]); //call the drawPlots function for the default field of pressuretemperature 
+drawPlots(new Array(sensor),"plot",[]); //call the drawPlots function for the default field of pressuretemperature 
 </script> <!-- End main plot script -->
 	
 <script type="text/javascript">
@@ -406,8 +416,8 @@ Select custom timerange to graph(yyyy-mm-dd hh:mm:ss 24hour format) :
 <span>
 TO
 </span>
-<input type='text' id='end_time' placeholder="End Date">
 <!-- End input box -->
+<input type='text' id='end_time' placeholder="End Date">
 
 <!-- start and end submit button to call the goTo() function to handle the input -->
 <input type='button' id='link_str' value='Graph' onClick='goTo()'>
