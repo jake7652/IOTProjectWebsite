@@ -122,11 +122,11 @@ var timeField = "RTCDataTime";
 //we have to wait for the html page to be ready in order to populate the table and do things with it 
 $(document).ready(function() {
   var table = $('#sensorsTable').DataTable( {
-        "columnDefs": [ {
-            "targets": -1,
-            "data": null,
-            "defaultContent": "<button>Graph readings</button>"
-        } ]
+        //"columnDefs": [ {
+            //"targets": -1,
+            //"data": null,
+            //"defaultContent": "<button>Graph readings</button>"
+      //  } ]
     } );
 
 
@@ -147,7 +147,8 @@ table.row.add( [
 LABELS[fields[i]],
 readings[fields[i]],
 UNITS[fields[i]],
-sqlToTable(readings[timeField])
+sqlToTable(readings[timeField]),
+"<button>Graph ".concat(LABELS[fields[i]],"</button>")
 ]
 ).draw(true);
 
@@ -311,7 +312,11 @@ $( "#hoursmins" ).val("00:00:00");
 });
 
 
+
 </script>
+
+
+
 
 </body>
 </html>
