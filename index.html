@@ -2,20 +2,15 @@
 <html>
 <!-- offline source for jquery used for calling php script from javascript -->
 <script src="jquery-3.3.1.js"></script>
-<script src="/jquery-ui-1.12.1/jquery-ui.js"></script>
-<link rel="stylesheet" href="/jquery-ui-1.12.1/jquery-ui.css">
-<script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
+<script src="/jquery-ui/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="/jquery-ui/jquery-ui.min.css">
+<script src="/DataTables/datatables.min.js"></script>
+<link rel="stylesheet" href="/DataTables/datatables.min.css">
 <head>
-<style>
-table, td {
-    border: 1px solid black;
-}
-</style>
 </head>
 <body>
 
-<p>Click the button to add a new row at the first position of the table and then add cells and content.</p>
+<p>Realtime sensor readings table</p>
 
 <table id="sensorsTable" class="display" style="width:100%">
   <thead>
@@ -24,6 +19,7 @@ table, td {
     <th>Value</th>
     <th>Unit</th>
     <th>Date</th>
+    <th>Graph</th>
   </tr>
 </thead>
 <tbody>
@@ -32,25 +28,29 @@ table, td {
 </tbody>
 </table>
 <br>
-
 <p>
-  <label for="amount">Date range:</label>
+Select older sensor data to view:
+</p>
+<p>
+  <label for="amount">Date of reading:</label>
   <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
 </p>
  
 <div id="slider-range"></div>
 
 <p>
-  <label for="hoursmins">Time range:</label>
+  <label for="hoursmins">Time of reading:</label>
   <input type="text" id="hoursmins" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
 </p>
 <div id="slider-range-hours"></div>
 
 <br>
 
-<input type='button' id='link_str' value='Reset Back to Current Readings' onClick='resetTime()'>
+<input type='button' id='link_str' value='Reset back to realtime updates' onClick='resetTime()'>
 
 <script>
+
+
 var UNITS = { //Y labels for each sensor graph
 HumidityTemperature: "F",
 PressureTemperature: "F",
@@ -116,29 +116,52 @@ var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.s
 
 return new Date(formatted);
 }
-
-$(document).ready( function () {
-    $('#sensorsTable').DataTable();
-} );
-
-var table = $('#sensorsTable').DataTable();
-
-
 var fields = new Array("HumidityTemperature","PressureTemperature","Humidity","HumidityHeatIndex","Transducer","PressurePressure","PressureAlititude","Temperature1");
 var timeField = "RTCDataTime";
-//var table = document.getElementById("sensorsTable");
+
+//we have to wait for the html page to be ready in order to populate the table and do things with it 
+$(document).ready(function() {
+  var table = $('#sensorsTable').DataTable( {
+        "columnDefs": [ {
+            "targets": -1,
+            "data": null,
+            "defaultContent": "<button>Graph readings</button>"
+        } ]
+    } );
+
+
+
+
+
+
+
 var readings = getFromSql(fields,1,false);
 var sensorRows = new Array();
 for(var i = 0; i < fields.length; i++) {
+//var button = document.createElement(i.toString());
+//button.type = "button";
+//button.className = "btn";
+//button.value = fields[i];
+
 table.row.add( [
 LABELS[fields[i]],
 readings[fields[i]],
 UNITS[fields[i]],
-sqlToTable(readings[timeField]) 
+sqlToTable(readings[timeField])
 ]
 ).draw(true);
 
 }
+
+
+
+$('#sensorsTable tbody').on( 'click', 'button', function () {
+        var sIndex = $(this).closest("tr").index(); //get the sorted row index of the button
+        var uIndex = table.row($(this).closest("tr")).index(); //get the unsorted row index of the button 
+	sessionStorage.setItem('sensor', fields[uIndex]);
+	window.location.href = "lineCharts.html";
+        
+    } );
 
 var currentUpdate = false;
 function tableSqlUpdate(field,lines,async) { 
@@ -214,13 +237,81 @@ function sliderTimeQuery(time, async) {
 });
 return ret; //return the result of the ajax call
 }
+var firstDate = sqlToSlider(firstTimeQuery(false)[timeField]);
+var lastDate = sqlToSlider(getFromSql(timeField,1,false)[timeField]);
 
+var currentTime = "00:00:00"; 
+  $(function() {
+    $( "#slider-range" ).slider({
+      range: false,
+      min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000),
+      max: lastDate.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000),
+      step: 1,
+      values: [firstDate],
+      slide: function( event, ui ) {
+        $( "#amount" ).val( (new Date(ui.values[ 0 ] ).toDateString() )); //+ " - " + (new Date(ui.values[ 1 ] //*1000)).toDateString() );
+	currentDate = new Date(ui.value ) ;
+      },
+      stop : function (event, ui) {
+	if(currentUpdate != false) {
+	currentUpdate.abort();
+	
+	}
+	updatesPaused = true; 
+ 	
+	
+	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
+	
+	 for(var i = 0; i < fields.length; i++) {
+	 var tempData = table.row(i).data();
+         tempData[1] = timeOutput[fields[i]];
+         tempData[3] = sqlToTable(timeOutput[timeField]);  
+	 table.row(i).data(tempData);
+	 }
+	}
+    });
+    $( "#amount" ).val(firstDate.toDateString()); 
+    // + " - " + (new Date($( "#slider-range" ).slider( "values", 1 //)*1000)).toDateString());
+  });
+$(function() {
+    $("#slider-range-hours").slider({
+        range: false,
+        min: 0,
+        max: 86400,
+        step: 1,
+        slide: function(e, ui) {
+            var hours = Math.floor(ui.value / 60 / 60);
+            var minutes = Math.floor(ui.value/60) - (hours * 60);
+	    var seconds = ui.value - (minutes * 60) - (hours * 60 * 60);
+
+            if(hours.toString().length == 1) hours = '0' + hours;
+            if(minutes.toString().length == 1) minutes = '0' + minutes;
+	    if(seconds.toString().length == 1) seconds = '0' + seconds;
+            $('#hoursmins').val(hours+':'+minutes+':'+seconds);
+	    currentTime = hours+':'+minutes+':'+seconds;
+        },
+	stop: function(e, ui) {
+	if(currentUpdate != false) {
+	currentUpdate.abort();
+	
+	}
+	updatesPaused = true;
+	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
+	 for(var i = 0; i < fields.length; i++) {
+	 var tempData = table.row(i).data();
+         tempData[1] = timeOutput[fields[i]];
+         tempData[3] = sqlToTable(timeOutput[timeField]);  
+	 table.row(i).data(tempData); 
+	 }
+	}
+    });
+$( "#hoursmins" ).val("00:00:00"); 
+});
+
+});
 
 
 </script>
-
-
-
 
 </body>
 </html>
