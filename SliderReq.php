@@ -28,7 +28,7 @@ $result = $mysqli->query($query);
 $res_arr = mysqli_fetch_assoc($result);
 if($res_arr == null) {
 $result->close();
-$query = sprintf("SELECT * FROM ( SELECT * FROM DataTable ORDER BY TransmissionKey DESC LIMIT 1 ) sub ORDER BY TransmissionKey ASC;");
+$query = sprintf("SELECT * FROM ( SELECT * FROM DataTable ORDER BY RTCDataTime DESC LIMIT 1 ) sub ORDER BY TransmissionKey ASC;");
 $result = $mysqli->query($query);
 //we only have one row so just fetch the associative array for that row
 echo json_encode(mysqli_fetch_assoc($result));
