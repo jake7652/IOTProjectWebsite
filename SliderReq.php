@@ -21,11 +21,13 @@ if(!$mysqli){
 }
 
 
-//request the last $lines rows from the database
+//request first row from the table that matches or is greater than the time argument 
 $query = sprintf("Select * FROM DataTable WHERE RTCDataTime >= " . $time . " LIMIT 1;");
 $result = $mysqli->query($query);
 
+//get the associative array for the result 
 $res_arr = mysqli_fetch_assoc($result);
+//if the result is empty then we just request the last row of the table
 if($res_arr == null) {
 $result->close();
 $query = sprintf("SELECT * FROM ( SELECT * FROM DataTable ORDER BY RTCDataTime DESC LIMIT 1 ) sub ORDER BY TransmissionKey ASC;");
