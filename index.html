@@ -232,6 +232,10 @@ return ret; //return the result of the ajax call
 
 ////////////////////// END AJAX FUNCTIONS ////////////////////////////////////
 
+var doneUpdating = true; //check whether or not our previous ajax call has finished
+var updatesPaused = false; //check whether we are in realtime update mode or we have paused it 
+
+
 
 //wait for the html page to be ready and then create the datatable, populate it, and populate the sliders 
 $(document).ready(function() {
@@ -280,17 +284,12 @@ $('#sensorsTable tbody').on( 'click', 'button', function () {
         
     } );
 
-
-var doneUpdating = true; //check whether or not our previous ajax call has finished
-var updatesPaused = false; //check whether we are in realtime update mode or we have paused it 
 //table update loop
 setInterval(function(){
 if(doneUpdating == true && !updatesPaused) { //if the previous ajax call is done and updates are not paused then we call to update the table
 doneUpdating = tableSqlUpdate(fields,1,true);
 }
 }, 10000); //request to update the table every 10 seconds
-
-
 
 
 //gets the first and last date so we can establish a min and max range for the slider
@@ -380,6 +379,10 @@ $( "#hoursmins" ).val("00:00:00");
 });
 
 });
+
+
+
+
 
 //function called that resets back to realtime updates
 //I would have placed this inside of document ready stuff, but it did not work there, so this has to go outside of that .
