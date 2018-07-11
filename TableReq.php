@@ -16,14 +16,10 @@ if(!$mysqli){
 	die("Connection failed: " . $mysqli->error);
 }
 
-//pdo_mysql persistent connections
-//$instance_pdo = new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . '', $DB_USERNAME, $DB_PASSWORD, [
-//    PDO::ATTR_PERSISTENT => true
-//]);
 $lines = 1; //how many lines from the database we should request
 
 //request the last $lines rows from the database
-$query = sprintf("SELECT * FROM ( SELECT * FROM DataTable ORDER BY TransmissionKey DESC LIMIT " . $lines . ") sub ORDER BY TransmissionKey ASC;");
+$query = sprintf("SELECT * FROM ( SELECT * FROM DataTable ORDER BY RTCDataTime DESC LIMIT " . $lines . ") sub ORDER BY TransmissionKey ASC;");
 $result = $mysqli->query($query);
 
 //we only have one row so just fetch the associative array for that row
