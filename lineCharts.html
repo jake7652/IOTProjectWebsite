@@ -5,8 +5,10 @@
 <script src="plotly-latest.min.js"></script>
 <!-- offline soruce for jquery used for calling php script from javascript -->
 <script src="jquery-3.3.1.js"></script>
+<script src="/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
 <!-- Main Plot element div. -->
 <div id="plot" style="width:100%;height:85%;"></div>
+<p style="text-align: left; font-size: 20px;" >Hover over the chart in order to view more options</p>
 <script>
 var windowWidth = window.innerWidth; //used for setting the graph's size
 var windowHeight = window.innerHeight; //used for setting the graph's size
@@ -26,8 +28,8 @@ HumidityTemperature: "Temperature(F)",
 PressureTemperature: "Air Temperature(F)",
 Humidity: "Humidity(% Saturation)",
 HumidityHeatIndex: "Heat Index(F)",
-Transducer: "Distance(cm?)",
-PressurePressure: "Pressure(Hg)",
+Transducer: "Distance(mm)",
+PressurePressure: "Pressure(Hg/mm)",
 PressureAlititude: "Altitude(ft)", 
 Temperature1: "Water Temperature(F)",
 
@@ -41,16 +43,16 @@ sensor = sessionStorage.getItem('sensor');
 
 var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
 //ajax call using jquery to sqlMult req for the fields in the database for N lines 
-function getFromSql(field,lines,async) {
+function getFromSql(field,lines,callback) {
 var ret = null;
 ajaxCalls[ajaxCalls.length] = 
 	 $.ajax({ url: "sqlMultReq.php",
-         async: async,
+         async: true,
 	 type: "POST",
          dataType: 'json',
 	 data: {arguments: [field,lines]},
          success: function(output) {
-		    ret = output;
+		    callback(output);
 		    
 }
 		
@@ -62,8 +64,18 @@ var interval; //the variable used for the running plot update loop
 var currentFields; //used to keep track of what is currently graphed so that I can use this if a user enters a custom start and end date in
 //draw the plots at plotName dive for the given array of fields and given time domain
 function drawPlots(fields,plotName,domain) {
+
+$.LoadingOverlay("show");
 currentFields = fields;
-var query = getFromSql(fields,"0",false); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
+var query;
+
+
+
+
+function queryCallback(result) {
+
+query = result;
+
 var temps = query.data; //all y data for each plot, arrays of arrays, each one being all values from one field.
 var dates = query.time; //all x data for each plot in one array.
 var maxDate = dates[dates.length-1]; //legacy previously used for domain, but now domain is predefined in the domain parameter
@@ -308,6 +320,14 @@ getFromSqlUpdater(fields,"90",true);
 },60000); //call the updater function every 60 seconds
 
 
+$.LoadingOverlay("hide");
+}
+
+getFromSql(fields,"0",queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
+
+
+
+
 
 } //end drawPlots function
 
@@ -384,6 +404,8 @@ Select measurements to graph:
 <script type="text/javascript"> 
 function goTo()
 {
+    
+    window.scrollTo(0,0);
     //get start and end value from their corresponding inputs
     var start = document.getElementById('start_time').value;
     var end = document.getElementById('end_time').value;
@@ -399,10 +421,10 @@ function goTo()
     ajaxCalls = [];
     //stop the updater loop
     clearInterval(interval);
-	
+   
     //redraw the plot with the new start and end interval
     drawPlots(currentFields,"plot",[start,end]);
-    
+ 
 }
 </script> <!-- End custom range script -->
 
@@ -422,4 +444,10 @@ TO
 <!-- start and end submit button to call the goTo() function to handle the input -->
 <input type='button' id='link_str' value='Graph' onClick='goTo()'>
 
+
+
 </body>
+<footer>
+<br>
+Website update 7-14-2018 3:30
+</footer>
