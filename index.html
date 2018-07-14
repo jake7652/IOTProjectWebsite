@@ -6,9 +6,38 @@
 <link rel="stylesheet" href="/jquery-ui/jquery-ui.min.css">
 <script src="/DataTables/datatables.min.js"></script>
 <link rel="stylesheet" href="/DataTables/datatables.min.css">
+<script src="/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
+
 <head>
 <!-- Styling for the graph button and the reset button -->
 <style>
+
+
+
+
+legend {
+font-size: 20px;
+position:relative;
+
+
+}
+
+.ui-slider-horizontal {
+width:41%;
+height: 100%;
+display:block;
+float:left;
+padding-bottom: 5px;
+padding-top: 5px;
+}
+
+.ui-slider .ui-slider-handle {
+height: 130%;
+width: 4%;
+padding-left: 5px;
+
+}
+
 .graphbutton { 
 display: block;
 border: none;
@@ -40,13 +69,35 @@ text-align: center;
     color: black;
 }
 
+.divLeft {
+width:41%;
+height: 100%;
+display:block;
+float:left;
+
+}
+
+.divRight {
+width: 41%;
+height: 100%;
+display:block;
+float: left;
+
+}
+
+.separator {
+width: 1%;
+display:inline;
+float: left;
+}
+
 </style>
 </head>
 <body>
 
 
 <!-- label for the table -->
-<p>Realtime sensor readings table</p>
+<p style="text-align: center; font-size: 24px;">Realtime sensor readings table</p>
 
 <!-- manually add the headers for each column but nothing else -->
 <table id="sensorsTable" class="display" style="width:100%">
@@ -66,39 +117,66 @@ text-align: center;
 </table>
 <br>
 <!-- Label for the sliders for viewing older sensor data -->
-<p>
-Select older sensor data to view:
-</p>
+
+
+<form style="height:50%;">
+
+<fieldset style="height:50%;">
 <!-- Date slider label  -->
-<p>
-  <label for="amount">Date of reading:</label>
-  <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
-</p>
+<legend> Select older sensor data to view  </legend>
+
+<div style="width:100%; display:block; height:70%"> 
+  <div class = "divLeft">
+  <label for="amount" style:"width:50%;">Date of reading:</label> 
+  <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold; " />
+  </div>
+  <span class = "separator"><br></span>
+  <div class = "divRight">
+  <label for="hoursmins" style="display:block; float:left;">Time of reading: <br></label>
+  <input type="text" id="hoursmins" style="border: 0; color: #f6931f; font-weight: bold; " />  
+  </div>
+</div>
+
+
+<span class = "separator" style="height:10px; width:100%"><br></span>
+
 <!-- div on which the date slider is drawn for scrubbing through days -->
-<div id="slider-range"></div>
 
+<div style="display:block; height: 10px;"> 
+
+<div id="slider-range" ></div>
+
+<span class = "separator"><br></span>
+ 
 <!-- Time slider label -->
-<p>
-  <label for="hoursmins">Time of reading:</label>
-  <input type="text" id="hoursmins" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
-</p>
 <!-- div on which the time sliders is draw for scrubbing through hours mins seconds -->
-<div id="slider-range-hours"></div>
+<div id="slider-range-hours" ></div>
 
+
+<span class = "separator" style="height: 10px;"><br></span>
+
+<input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Get values at time' onClick='oldDataReq()'>
+
+</div>
+<span class = "separator" style="height:10px; width:100%"><br></span>
+
+</fieldset>
 <br>
-
-
+</form>
 
 <script>
 
+
+
+//$.LoadingOverlay("show");
 
 var UNITS = { //Labels of the units that each sensor uses
 HumidityTemperature: "F",
 PressureTemperature: "F",
 Humidity: "% Saturation",
 HumidityHeatIndex: "F",
-Transducer: "cm?",
-PressurePressure: "Hg",
+Transducer: "mm",
+PressurePressure: "Hg/mm",
 PressureAlititude: "FT", 
 Temperature1: "F",
 
@@ -116,15 +194,16 @@ Temperature1: "Water Temperature",
 };
 
 //ajax call using jquery to TableReq req for the fields in the database for N lines. This is for inital table data calls 
-function getFromSql(field,lines,async) {
+function getFromSql(field,lines,callback) {
 var ret = null;
 	 $.ajax({ url: "TableReq.php",
-         async: async,
+         async: true,
 	 type: "POST",
          dataType: 'json',
 	 data: {arguments: []}, //the line argument is not actually passed in and is just a holdover from another function
          success: function(output) {
-		    ret = output;
+	 	  
+		    callback(output);
 		    
 }
 		
@@ -145,7 +224,6 @@ function tableToSql(date) {
 return "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
 
 }
-
 //conversion from the format that the slider uses to display time to the format our SQL table uses to store time
 function sliderToSql(date,time) {
 
@@ -170,7 +248,9 @@ var table;
 
 ///////////////////////////// START AJAX FUNCTIONS FOR SQL REQUESTS ////////////////////////////
 
+
 //used for updating the sensor data in realtime. Asks for the last line of the sql table and then changes the appropriate table columns when done
+var currentUpdate = false;
 function tableSqlUpdate(field,lines,async) { 
 	 currentUpdate = $.ajax({ url: "TableReq.php",
          async: async,
@@ -194,15 +274,15 @@ return finished; //whether or not we have finished retrieving the updated sensor
 }
 
 //calls for the first line of the RTC data time field
-function firstTimeQuery(async) { 
+function firstTimeQuery(callback) { 
 	 ret = null;
 	 $.ajax({ url: "FirstTimeReq.php",
-         async: async,
+         async: true,
 	 type: "POST",
          dataType: 'json',
 	 data: {arguments: []}, //no arguments needed for this
          success: function(output) {
-	 ret = output;
+	 callback(output);
 	 
 		    
 }
@@ -213,16 +293,23 @@ return ret; //return the result of the ajax call
 
 
 //calls for a row that matches or closely matches a specific time and date for the sliders 
-function sliderTimeQuery(time, async) { 
+function sliderTimeQuery(time) { 
 	 ret = null;
 	 $.ajax({ url: "SliderReq.php",
-         async: async,
+         async: true,
 	 type: "POST",
          dataType: 'json',
 	 data: {arguments: [ time ]},
          success: function(output) {
 	 ret = output;
-	 
+	  //for each field, get the row for it and update the sensor column and the time column
+	 for(var i = 0; i < fields.length; i++) {
+	 var tempData = table.row(i).data();
+         tempData[1] = output[fields[i]];
+         tempData[3] = sqlToTable(output[timeField]);  
+	 table.row(i).data(tempData); 
+	 }
+	 $.LoadingOverlay("hide");
 		    
 }
 		
@@ -237,10 +324,13 @@ var updatesPaused = false; //check whether we are in realtime update mode or we 
 
 
 
-//wait for the html page to be ready and then create the datatable, populate it, and populate the sliders 
-$(document).ready(function() {
+
 //create the table frame and store in a variable for easy changes
   table = $('#sensorsTable').DataTable( {
+	"language": {
+	"search": "Sensor Select:"
+
+	}
         //"columnDefs": [ {
             //"targets": -1,
             //"data": null,
@@ -250,8 +340,13 @@ $(document).ready(function() {
 
 
 
-//get the last line of sensor data from the SQL table
-var readings = getFromSql(fields,1,false);
+$.LoadingOverlay("show");
+//variable to store last line of sensor data
+var readings = false;
+
+//function called when the ajax call is done
+function readingsCallback(result) {
+readings = result;
 //previously used in the for loop but not anymore
 var sensorRows = new Array();
 //for loop used to populate each line of the table for each field
@@ -272,7 +367,6 @@ sqlToTable(readings[timeField]),
 
 }
 
-
 //what happens when one of the graph buttons are clicked
 $('#sensorsTable tbody').on( 'click', 'button', function () {
         
@@ -284,6 +378,7 @@ $('#sensorsTable tbody').on( 'click', 'button', function () {
         
     } );
 
+
 //table update loop
 setInterval(function(){
 if(doneUpdating == true && !updatesPaused) { //if the previous ajax call is done and updates are not paused then we call to update the table
@@ -292,11 +387,30 @@ doneUpdating = tableSqlUpdate(fields,1,true);
 }, 10000); //request to update the table every 10 seconds
 
 
+
+}
+//start the async call for the table readings  
+getFromSql(fields,1,readingsCallback);
+
+
+
 //gets the first and last date so we can establish a min and max range for the slider
-var firstDate = sqlToSlider(firstTimeQuery(false)[timeField]);
-var lastDate = sqlToSlider(getFromSql(timeField,1,false)[timeField]);
+var firstDate = false;
+var lastDate = false;
+
+
+function firstDateCallback(result) {
+firstDate = sqlToSlider(result[timeField]);
+getFromSql(timeField,1,lastDateCallback);
+}
+
+var currentTime;
+var currentDate;
+function lastDateCallback(result) {
+lastDate = sqlToSlider(result[timeField]);
 //default time is midnight
-var currentTime = "00:00:00"; 
+currentTime = "00:00:00"; 
+currentDate = new Date(firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000));
   $(function() {
     $( "#slider-range" ).slider({
       range: false,
@@ -313,21 +427,7 @@ var currentTime = "00:00:00";
       },
       //when we stop sliding we stop the current the realtime updates 
       stop : function (event, ui) {
-	if(currentUpdate != false) {
-	currentUpdate.abort();
 	
-	}
-	updatesPaused = true; 
- 	
-	//get the row data for all fields for the time requested 
-	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
-	//update the table rows with the row data returned from the ajax request
-	 for(var i = 0; i < fields.length; i++) {
-	 var tempData = table.row(i).data();
-         tempData[1] = timeOutput[fields[i]];
-         tempData[3] = sqlToTable(timeOutput[timeField]);  
-	 table.row(i).data(tempData);
-	 }
 	}
     });
     //set the default label for the slider to  the first date
@@ -357,28 +457,19 @@ $(function() {
 	    currentTime = hours+':'+minutes+':'+seconds;
         },
 	stop: function(e, ui) {
-	//stop realtime sensor updates if user stops sliding 
-	if(currentUpdate != false) {
-	currentUpdate.abort();
 	
-	}
-	updatesPaused = true;
-         //get the row data for the current date and time from sql table
-	 var timeOutput = sliderTimeQuery(sliderToSql(currentDate,currentTime),false);
-	 //for each field, get the row for it and update the sensor column and the time column
-	 for(var i = 0; i < fields.length; i++) {
-	 var tempData = table.row(i).data();
-         tempData[1] = timeOutput[fields[i]];
-         tempData[3] = sqlToTable(timeOutput[timeField]);  
-	 table.row(i).data(tempData); 
-	 }
 	}
     });
 //set the time slider to a default value of midnight
 $( "#hoursmins" ).val("00:00:00"); 
 });
 
-});
+$.LoadingOverlay("hide");
+}
+
+firstTimeQuery(firstDateCallback);
+ 
+
 
 
 
@@ -387,15 +478,61 @@ $( "#hoursmins" ).val("00:00:00");
 //function called that resets back to realtime updates
 //I would have placed this inside of document ready stuff, but it did not work there, so this has to go outside of that .
 function resetTime() {
+
+window.scrollTo(0,0); //scroll to top of page
+
+
+$.LoadingOverlay("show");
+function resetCallback(output) {
+//for every field, go into the row it represents and change the sensor value and the timestamp
+	 for(var i = 0; i < fields.length; i++) {
+         var tempData = table.row(i).data();
+	 tempData[1] = output[fields[i]];
+	 tempData[3] = sqlToTable(output[timeField]); 
+         table.row(i).data(tempData); 
+	 }
+$.LoadingOverlay("hide");
+
 updatesPaused = false; //this will break the function if we have not already made a updatesPaused variable
-tableSqlUpdate(fields,1,false);
 }
+getFromSql(fields,1,resetCallback);
+
+}
+
+function oldDataReq(){
+
+
+
+
+
+$.LoadingOverlay("show");
+
+
+window.scrollTo(0,0); //scroll to top of page
+//stop realtime sensor updates if user stops sliding 
+	if(currentUpdate != false) {
+	currentUpdate.abort();
+	
+	}
+	updatesPaused = true;	
+         //get the row data for the current date and time from sql table
+	sliderTimeQuery(sliderToSql(currentDate,currentTime));
+	
+	
+
+}
+
 //end script 
 </script>
+
+
 
 <!-- Reset button for restarting realtime updates after sliding through data -->
 <input type='button' class='resetbutton' id='link_str' value='Reset back to realtime updates' onClick='resetTime()'>
 
+<footer>
+website update 7-14-2018 02:52
+</footer>
 
 </body>
 </html>
