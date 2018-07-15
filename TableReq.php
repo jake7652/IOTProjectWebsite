@@ -25,9 +25,9 @@ $result = $mysqli->query($query);
 //we only have one row so just fetch the associative array for that row
 echo json_encode(mysqli_fetch_assoc($result));
 
-$mysqli->close();
-$result->close();
 
+$result->close();
+$mysqli->close();
 
 
 ?>
