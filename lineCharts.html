@@ -64,10 +64,14 @@ float:left;
 <!-- Main Plot element div. -->
 
 
-<p style="text-align: left; font-size: 20px;" >Hover over the chart in order to view more options</p>
+<p style="text-align: left; font-size: 20px;" ></p>
 
-
+<fieldset>
+<legend style="font-size: 20px "> Hover over the chart in order to view more options</legend>
 <div id="plot" style="width:100%;height:85%;"></div>
+
+
+
 
 <script>
 var windowWidth = window.innerWidth; //used for setting the graph's size
@@ -606,6 +610,9 @@ firstTimeQuery(firstDateCallback);
 
 function dateSlider() {
 
+
+window.scrollTo(0,0);
+
 //abort all ajax calls
     for(var i = 0; i < ajaxCalls.length; i++) {
 	ajaxCalls[i].abort();
@@ -638,7 +645,7 @@ function dateSlider() {
 <div id="slider-range" class="divLeft"></div>
 <span class = "separator" style="height: 10px;"><br></span>
 
-<input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Graph for date range' onClick='dateSlider()'>
+<input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Graph' onClick='dateSlider()'>
 
 <br>
 </fieldset>
@@ -646,5 +653,5 @@ function dateSlider() {
 </body>
 <footer>
 <br>
-Website update 7-14-2018 23:41
+Website update 7-14-2018 12:41
 </footer>
