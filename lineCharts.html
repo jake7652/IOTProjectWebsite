@@ -14,6 +14,12 @@
 <style>
 
 
+.js-plotly-plot .plotly .modebar {
+
+left:0%;
+
+}
+
 .ui-slider-horizontal {
 width:100%;
 height: 12px;
@@ -67,7 +73,7 @@ float:left;
 <p style="text-align: left; font-size: 20px;" ></p>
 
 <fieldset>
-<legend style="font-size: 20px "> Hover over the chart in order to view more options</legend>
+<legend style="font-size: 20px ">Toolbar</legend>
 <div id="plot" style="width:100%;height:85%;"></div>
 
 
@@ -313,7 +319,8 @@ layout['height'] = (windowHeight*.8); //the 5% difference here from the div's he
 
 //Draw a new plot every time there is a call made to the function. 
 //React is more efficient but I was experiencing some unusual behavior with the subplots when using it so I had to use newPlot instead
-Plotly.newPlot(plotName,traces,layout);
+//the 4th argument hides the logo in the modebar, tells it to always be displayed, and removes autoscale since it does not work
+Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,modeBarButtonsToRemove: ['autoScale2d']}); 
 
 
 //realtime updater of the plot 
