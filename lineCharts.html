@@ -3,9 +3,11 @@
 <body>
 <!-- offline source of plotly API used for graphing the plot -->
 <script src="plotly-latest.min.js"></script>
-<!-- offline soruce for jquery used for calling php script from javascript -->
+<!-- offline source for jquery used for calling php script from javascript -->
 <script src="jquery-3.3.1.js"></script>
+<!-- offline source for the loading overlay of the website -->
 <script src="/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
+<!-- jquery ui for the sliders -->
 <script src="/jquery-ui/jquery-ui.min.js"></script>
 <link rel="stylesheet" href="/jquery-ui/jquery-ui.min.css">
 
@@ -13,13 +15,14 @@
 
 <style>
 
-
+/* styling for the toolbar at the top of the chart. This moves it to the left */
 .js-plotly-plot .plotly .modebar {
 
 left:0%;
 
 }
 
+/* styling for the toolbar at the top of the chart. This moves it to the left */
 .ui-slider-horizontal {
 width:100%;
 height: 12px;
@@ -29,6 +32,7 @@ padding-bottom: 5px;
 padding-top: 5px;
 }
 
+/* formatting for the slider buttons inside the sliders */
 .ui-slider .ui-slider-handle {
 height: 130%;
 width: 1%;
@@ -36,7 +40,7 @@ padding-left: 5px;
 
 }
 
-
+/* formatting for the graph button next to the date slider */
 .graphbutton { 
 display: block;
 border: none;
@@ -47,17 +51,21 @@ cursor: pointer;
 text-align: center;
 
 }
+/* what happens when the user hovers over the graph button */
 .graphbutton:hover {
     background-color: #ddd;
     color: black;
 }
 
+
+/* separator between the graph button and the range slider */
 .separator {
 width: 1%;
 display:inline;
 float: left;
 }
 
+/* formatting for the date range slider for the graph */
 .divLeft {
 width:83%;
 display:block;
@@ -402,7 +410,7 @@ getFromSql(fields,"0",queryCallback); //get all lines for the fields from the SQ
 
 } //end drawPlots function
 
-drawPlots(new Array(sensor),"plot",[]); //call the drawPlots function for the default field of pressuretemperature 
+drawPlots(new Array(sensor),"plot",[]); //call the drawPlots function for the sensor that was either stored in local storage or some preset default
 </script> <!-- End main plot script -->
 	
 <script type="text/javascript">
@@ -429,7 +437,7 @@ function getCheckedCheckboxesFor(checkboxName) {
 </script> <!-- End checkbox script -->
 
 
-
+<!-- checkboxes to graph other sensors container -->
 <form>
 <fieldset> 
 <legend>Select measurements to graph</legend>
@@ -479,7 +487,7 @@ function getCheckedCheckboxesFor(checkboxName) {
 function goTo()
 {
     
-    window.scrollTo(0,0);
+    window.scrollTo(0,0); //scroll up to top of the page after the user presses the button
     //get start and end value from their corresponding inputs
     var start = document.getElementById('start_time').value;
     var end = document.getElementById('end_time').value;
@@ -524,8 +532,9 @@ TO
 
 </fieldset>
 
-
+<!-- script for setting up the slider -->
 <script> 
+// show the loading overlay as the slider is set up
 $.LoadingOverlay("show");
 //slider script
 //calls for the first line of the RTC data time field
@@ -585,39 +594,45 @@ var lastDate = false;
 var selectedMin = false;
 var selectedMax = false;
 
+//callback run when the ajax call to get the first date in the local database is done
 function firstDateCallback(output) {
 firstDate = sqlToSlider(output["RTCDataTime"]);
 selectedMin = firstDate;
+//get the last date and call the lastDateCallback after we get the first date
 sliderSql("RTCDataTime",1,lastDateCallback);
 }
+
+//called after the first date is set and we have the last date in the local database to setup the slider
 function lastDateCallback(output) {
 lastDate = sqlToSlider(output["RTCDataTime"]);
 selectedMax = lastDate;
   $(function() {
     $( "#slider-range" ).slider({
       range: true,
-      min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000),
-      max: lastDate.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000),
-      step: 1,
-      values: [ firstDate.getTime(), lastDate.getTime()],
-      slide: function( event, ui ) {
+      min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000), //first date in millis with timezone accounted for
+      max: lastDate.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000), //last date in millis with timezone accounted for
+      step: 1, //step is 1 millis for smoother scrolling
+      values: [ firstDate.getTime(), lastDate.getTime()], 
+      slide: function( event, ui ) { 
+ 	//as we slide we have to update the slider label and the min and max 
         $( "#amount" ).val( (new Date(ui.values[ 0 ]).toDateString() ) + " - " + (new Date(ui.values[ 1 ])).toDateString() );
 	selectedMin = new Date(ui.values[0]);
 	selectedMax = new Date(ui.values[1]);
       }
     });
+//set the default values of the label to the min and max date
     $( "#amount" ).val( (new Date($( "#slider-range" ).slider( "values", 0 )).toDateString()) +
       " - " + (new Date($( "#slider-range" ).slider( "values", 1 ))).toDateString());
   });
-$.LoadingOverlay("hide");
+$.LoadingOverlay("hide"); //hide the loading overlay as we are done loading this 
 }
 
 firstTimeQuery(firstDateCallback);
 
-
+//function called when the user selectes the graph button next to the range slider
 function dateSlider() {
 
-
+//scroll to top of the page
 window.scrollTo(0,0);
 
 //abort all ajax calls
@@ -628,7 +643,7 @@ window.scrollTo(0,0);
     //stop the updater loop
     clearInterval(interval);
     //redraw the plot with the new start and end interval
-    
+    //just call to draw new plot for the updated range
     drawPlots(currentFields,"plot",[sliderToPlot(selectedMin),sliderToPlot(selectedMax)]);
 
 }
@@ -640,25 +655,33 @@ window.scrollTo(0,0);
 
 </p>
 
-
+<!-- fieldset encompassing the slider, and the elements associated with the slider -->
 <fieldset>
+<!-- top right header for the slider section -->
 <legend>Slide for custom timerange for graph</legend>
+<!-- slider label div making the first "line" of the slider fieldset -->
 <div style="width:100%">
+<!-- paragraph containing the label for the slider -->
 <p>
   <label for="amount">Date range:</label>
   <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
 </p>
 </div>
+<!-- Slider div -->
 <div id="slider-range" class="divLeft"></div>
+
+<!-- separator between the slider and the graph button for the slider -->
 <span class = "separator" style="height: 10px;"><br></span>
 
+<!-- graph button for the slider -->
 <input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Graph' onClick='dateSlider()'>
 
-<br>
-</fieldset>
+<br><!-- create some trailing whitespace on the slider fieldset -->
+</fieldset><!-- end slider fieldset -->
 
 </body>
-<footer>
+<!-- footer to show when the website was last updated -->
+<footer> 
 <br>
-Website update 7-14-2018 12:41
+Website last updated 2018-07-17 4:40
 </footer>
