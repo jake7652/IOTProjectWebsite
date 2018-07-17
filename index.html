@@ -9,12 +9,12 @@
 <script src="/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
 
 <head>
-<!-- Styling for the graph button and the reset button -->
+<!-- Styling for the graph button, the reset button, sliders, and separating spans -->
 <style>
 
 
 
-
+/* for the fieldsets encompassing the sliders and slider labels */
 legend {
 font-size: 20px;
 position:relative;
@@ -22,6 +22,8 @@ position:relative;
 
 }
 
+
+/* formatting for the slider background */
 .ui-slider-horizontal {
 width:41%;
 height: 100%;
@@ -31,6 +33,7 @@ padding-bottom: 5px;
 padding-top: 5px;
 }
 
+/* formatting for the actual draggable button on the slider */
 .ui-slider .ui-slider-handle {
 height: 130%;
 width: 4%;
@@ -38,6 +41,8 @@ padding-left: 5px;
 
 }
 
+
+/* formatting for the graph buttons in the last column of the table and the old values button */
 .graphbutton { 
 display: block;
 border: none;
@@ -48,11 +53,15 @@ cursor: pointer;
 text-align: center;
 
 }
+
+/* what happens when the user hovers over a graph button */
 .graphbutton:hover {
     background-color: #ddd;
     color: black;
 }
 
+
+/* formatting for the reset to realtime updates button */
 .resetbutton { 
 display: block;
 border: none;
@@ -64,11 +73,13 @@ cursor: pointer;
 text-align: center;
 
 }
+/* what happens when the user hovers over the reset button */
 .resetbutton:hover {
     background-color: #ddd;
     color: black;
 }
 
+/* formatting for left oriented divs in the fieldset with the sliders */
 .divLeft {
 width:41%;
 height: 100%;
@@ -77,6 +88,7 @@ float:left;
 
 }
 
+/* formatting for the right divs in the fieldset with the sliders */
 .divRight {
 width: 41%;
 height: 100%;
@@ -85,6 +97,7 @@ float: left;
 
 }
 
+/* formatting for the separator between divs in the fieldset */
 .separator {
 width: 1%;
 display:inline;
@@ -116,48 +129,62 @@ float: left;
 </tbody>
 </table>
 <br>
+
+
+
+
+
 <!-- Label for the sliders for viewing older sensor data -->
 
-
+<!-- encompassing form for the sliders and labels  -->
 <form style="height:50%;">
-
+<!-- fieldset that contains the border for the sliders and slider labels -->
 <fieldset style="height:50%;">
-<!-- Date slider label  -->
+<!-- Date slider label that appears on the top left  -->
 <legend> Select older sensor data to view  </legend>
-
+<!-- encompassing div for the labels for the sliders -->
 <div style="width:100%; display:block; height:70%"> 
+<!-- left slider label div -->
   <div class = "divLeft">
   <label for="amount" style:"width:50%;">Date of reading:</label> 
   <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold; " />
   </div>
+<!-- spacer between the labels -->
   <span class = "separator"><br></span>
+<!-- label for the right slider -->
   <div class = "divRight">
   <label for="hoursmins" style="display:block; float:left;">Time of reading: <br></label>
   <input type="text" id="hoursmins" style="border: 0; color: #f6931f; font-weight: bold; " />  
   </div>
 </div>
 
-
+<!-- separator that creates spacing between the labels and the sliders  -->
 <span class = "separator" style="height:10px; width:100%"><br></span>
 
-<!-- div on which the date slider is drawn for scrubbing through days -->
+
+<!-- div for the sliders -->
 
 <div style="display:block; height: 10px;"> 
 
+<!-- div on which the date slider is drawn for scrubbing through days -->
 <div id="slider-range" ></div>
 
+<!-- separator between the two sliders -->
 <span class = "separator"><br></span>
  
 <!-- Time slider label -->
 <!-- div on which the time sliders is draw for scrubbing through hours mins seconds -->
 <div id="slider-range-hours" ></div>
 
-
+<!-- separator between the sliders and the graph button -->
 <span class = "separator" style="height: 10px;"><br></span>
 
-<input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Get values at time' onClick='oldDataReq()'>
+<!-- button to graph old data -->
+<input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Get values' onClick='oldDataReq()'>
 
 </div>
+
+<!-- separator to create some spacing at the bottom of the fieldset -->
 <span class = "separator" style="height:10px; width:100%"><br></span>
 
 </fieldset>
@@ -168,7 +195,6 @@ float: left;
 
 
 
-//$.LoadingOverlay("show");
 
 var UNITS = { //Labels of the units that each sensor uses
 HumidityTemperature: "F",
@@ -327,8 +353,10 @@ var updatesPaused = false; //check whether we are in realtime update mode or we 
 
 //create the table frame and store in a variable for easy changes
   table = $('#sensorsTable').DataTable( {
+
+	"paging": false,
 	"language": {
-	"search": "Sensor Select:"
+	"search": "Sensor name search:"
 
 	}
         //"columnDefs": [ {
@@ -339,12 +367,13 @@ var updatesPaused = false; //check whether we are in realtime update mode or we 
     } );
 
 
-
+//show the loading overlay on the website right before we start to pull values from the local database
 $.LoadingOverlay("show");
 //variable to store last line of sensor data
 var readings = false;
 
-//function called when the ajax call is done
+//function called when the ajax call is done. This has to be done like this in order to allow the calls to the database to be asyncronous
+//populates the table and creates the realtime update stuff for it
 function readingsCallback(result) {
 readings = result;
 //previously used in the for loop but not anymore
@@ -394,18 +423,22 @@ getFromSql(fields,1,readingsCallback);
 
 
 
-//gets the first and last date so we can establish a min and max range for the slider
+//first and last date for the min and max range for the slider
 var firstDate = false;
 var lastDate = false;
 
-
+//once the firstDate ajax is done we set first date and then do a call to the last date ajax. Could probably do some magic to where these do not need to be called sequentially
+//by checking to see if both values set in one callback
 function firstDateCallback(result) {
 firstDate = sqlToSlider(result[timeField]);
 getFromSql(timeField,1,lastDateCallback);
 }
-
+//current date and time set in the last date callback and placed outside of it to allow other functions to use it
 var currentTime;
 var currentDate;
+
+
+//after the first date callback is done and the last date is done setup the sliders in the callback
 function lastDateCallback(result) {
 lastDate = sqlToSlider(result[timeField]);
 //default time is midnight
@@ -476,12 +509,11 @@ firstTimeQuery(firstDateCallback);
 
 
 //function called that resets back to realtime updates
-//I would have placed this inside of document ready stuff, but it did not work there, so this has to go outside of that .
 function resetTime() {
 
 window.scrollTo(0,0); //scroll to top of page
 
-
+//show the loading overlay as we reset the time to the realtime updates. Done outside the callback so it's done as soon as possible
 $.LoadingOverlay("show");
 function resetCallback(output) {
 //for every field, go into the row it represents and change the sensor value and the timestamp
@@ -491,20 +523,22 @@ function resetCallback(output) {
 	 tempData[3] = sqlToTable(output[timeField]); 
          table.row(i).data(tempData); 
 	 }
+//hide once we are done restting the table
 $.LoadingOverlay("hide");
 
 updatesPaused = false; //this will break the function if we have not already made a updatesPaused variable
 }
+
+//call a async request to SQL for the last line in the database
 getFromSql(fields,1,resetCallback);
 
 }
 
+//function called when the user presses the button next to the sliders to view older data
 function oldDataReq(){
 
 
-
-
-
+//show the loading overlay as we start the request
 $.LoadingOverlay("show");
 
 
@@ -514,8 +548,10 @@ window.scrollTo(0,0); //scroll to top of page
 	currentUpdate.abort();
 	
 	}
+	//tell the table to pause the realtime updates 
 	updatesPaused = true;	
-         //get the row data for the current date and time from sql table
+         //get the row data for the current date and time from sql table. No need for a callback since all the processing is done in the slidertimeQuery.
+	//the loading overlay is also hidden in the slidertimequery
 	sliderTimeQuery(sliderToSql(currentDate,currentTime));
 	
 	
@@ -530,8 +566,9 @@ window.scrollTo(0,0); //scroll to top of page
 <!-- Reset button for restarting realtime updates after sliding through data -->
 <input type='button' class='resetbutton' id='link_str' value='Reset back to realtime updates' onClick='resetTime()'>
 
+<!-- footer for the website showing when the website was last updated -->
 <footer>
-website update 7-14-2018 02:52
+website last updated 7-16-2018 3:08
 </footer>
 
 </body>
