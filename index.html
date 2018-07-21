@@ -191,6 +191,21 @@ float: left;
 <br>
 </form>
 
+<!-- Reset button for restarting realtime updates after sliding through data -->
+<input type='button' class='resetbutton' id='link_str' value='Reset back to realtime updates' onClick='resetTime()'>
+
+ 
+<div style= "height: 10px"></div>
+
+<select id='table_select' onChange="changeTable(this.value)" style="width: 100%; height: 50px; font-size: 16px; text-align-last:center; background-color: #4CAF50;">
+</select>
+
+
+<!-- footer for the website showing when the website was last updated -->
+<footer>
+website last updated 7-16-2018 3:08
+</footer>
+
 <script>
 
 
@@ -219,23 +234,14 @@ Temperature1: "Water Temperature",
 
 };
 
-//ajax call using jquery to TableReq req for the fields in the database for N lines. This is for inital table data calls 
-function getFromSql(field,lines,callback) {
-var ret = null;
-	 $.ajax({ url: "TableReq.php",
-         async: true,
-	 type: "POST",
-         dataType: 'json',
-	 data: {arguments: []}, //the line argument is not actually passed in and is just a holdover from another function
-         success: function(output) {
-	 	  
-		    callback(output);
-		    
+
+
+if(sessionStorage.getItem('Table') == null) {
+//set the default table from the database that the table on the website pulls from
+sessionStorage.setItem('Table', 'DataTable');
 }
-		
-});
-return ret; //return the result of the ajax call
-}
+alert(sessionStorage.getItem('Table'));
+
 
 
 //converts the format that the SQL table uses to store time into the format that the table uses to display it
@@ -282,7 +288,7 @@ function tableSqlUpdate(field,lines,async) {
          async: async,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: []}, //no arguments needed for this
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
          success: function(output) {
 	 //for every field, go into the row it represents and change the sensor value and the timestamp
 	 for(var i = 0; i < fields.length; i++) {
@@ -306,7 +312,7 @@ function firstTimeQuery(callback) {
          async: true,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: []}, //no arguments needed for this
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
          success: function(output) {
 	 callback(output);
 	 
@@ -325,7 +331,7 @@ function sliderTimeQuery(time) {
          async: true,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: [ time ]},
+	 data: {arguments: [ time, sessionStorage.getItem('Table') ]},
          success: function(output) {
 	 ret = output;
 	  //for each field, get the row for it and update the sensor column and the time column
@@ -336,6 +342,43 @@ function sliderTimeQuery(time) {
 	 table.row(i).data(tempData); 
 	 }
 	 $.LoadingOverlay("hide");
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+
+//calls for the first line of the RTC data time field
+function tableNamesQuery(callback) { 
+	 ret = null;
+	 $.ajax({ url: "TableNameReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
+         success: function(output) {
+	 callback(output);
+	 
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+//ajax call using jquery to TableReq req for the fields in the database for N lines. This is for inital table data calls 
+function getFromSql(field,lines,callback) {
+var ret = null;
+	 $.ajax({ url: "TableReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //the line argument is not actually passed in and is just a holdover from another function
+         success: function(output) {
+	 	  
+		    callback(output);
 		    
 }
 		
@@ -393,7 +436,7 @@ sqlToTable(readings[timeField]),
 "<button class=graphbutton>Graph ".concat(LABELS[fields[i]],"</button>")
 ]
 ).draw(true);
-
+$.LoadingOverlay("hide");
 }
 
 //what happens when one of the graph buttons are clicked
@@ -559,17 +602,36 @@ window.scrollTo(0,0); //scroll to top of page
 }
 
 //end script 
+
+
+function populateTables(tables) {
+
+select = document.getElementById('table_select');
+for (var i = 0; i < tables.length; i++){
+    var opt = document.createElement('option');
+    opt.value = tables[i];
+    opt.innerHTML = tables[i];
+    select.appendChild(opt);
+}
+$.LoadingOverlay("hide");
+}
+$.LoadingOverlay("show");
+tableNamesQuery(populateTables);
+
+function changeTable(table) {
+$.LoadingOverlay("show");
+//set the table to the updated selection
+sessionStorage.setItem('Table', table);
+alert(table);
+//refresh the page after the table changes because i'm too lazy to bother functioniz-ing everything
+history.go(0); 
+}
+
 </script>
 
 
 
-<!-- Reset button for restarting realtime updates after sliding through data -->
-<input type='button' class='resetbutton' id='link_str' value='Reset back to realtime updates' onClick='resetTime()'>
 
-<!-- footer for the website showing when the website was last updated -->
-<footer>
-website last updated 7-16-2018 3:08
-</footer>
 
 </body>
 </html>
