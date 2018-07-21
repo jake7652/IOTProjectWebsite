@@ -223,12 +223,13 @@ Temperature1: "Water Temperature(F)",
 };
 
 //This is used so that we can request a specific graph to be made when redirecting to the page from the table display page for instance
-var sensor = "PressureTemperature";
+
+var sensor = ["PressureTemperature"];
 if(sessionStorage.getItem('sensor') != null) {
-sensor = sessionStorage.getItem('sensor');
+sensor = sessionStorage.getItem('sensor').split(",");
 } 
 
-
+alert(sensor);
 if(sessionStorage.getItem('Table') == null) {
 //set the default table from the database that the table on the website pulls from
 sessionStorage.setItem('Table', 'DataTable');
@@ -543,7 +544,7 @@ getFromSql(fields,"0",queryCallback); //get all lines for the fields from the SQ
 
 } //end drawPlots function
 
-drawPlots(new Array(sensor),"plot",[]); //call the drawPlots function for the sensor that was either stored in local storage or some preset default
+drawPlots(sensor,"plot",[]); //call the drawPlots function for the sensor that was either stored in local storage or some preset default
 </script> <!-- End main plot script -->
 	
 <script type="text/javascript">
@@ -746,6 +747,7 @@ function changeTable(table) {
 $.LoadingOverlay("show");
 //set the table to the updated selection
 sessionStorage.setItem('Table', table);
+sessionStorage.setItem('sensor',currentFields);
 //alert(table);
 //refresh the page after the table changes because i'm too lazy to bother functioniz-ing everything
 history.go(0); 
