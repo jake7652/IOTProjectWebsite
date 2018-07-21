@@ -84,6 +84,115 @@ float:left;
 <legend style="font-size: 20px ">Toolbar</legend>
 <div id="plot" style="width:100%;height:85%;"></div>
 
+<p>
+
+</p>
+<!-- checkboxes to graph other sensors container -->
+<form>
+<fieldset> 
+<legend>Select measurements to graph</legend>
+<div class="data">    <!-- container for the checkboxes --> 
+    <!-- Bunch of spans for the checkboxes so that they are inline of each other -->
+    <span>
+    <input name="sensor" type="checkbox" value="PressureTemperature"/>
+    <label for="sensor">Air Temperature</label>
+    </span> 
+    
+    <span>
+    <input name="sensor" type="checkbox" value="Temperature1"/>
+    <label for="sensor">Water Temperature</label>
+    </span>
+
+    <span>
+    <input name="sensor" type="checkbox" value="PressurePressure"/>
+    <label for="sensor">Pressure</label>
+    </span>
+    
+    <span>
+    <input name="sensor" type="checkbox" value="PressureAlititude"/>
+    <label for="sensor">Altitude</label>
+    </span>
+
+    <span>
+    <input name="sensor" type="checkbox" value="Humidity"/>
+    <label for="sensor">Humidity</label>
+    </span>    
+    
+    <span>
+    <input name="sensor" type="checkbox" value="HumidityHeatIndex"/>
+    <label for="sensor">Heat Index</label>
+    </span>
+
+    <span>
+    <input name="sensor" type="checkbox" value="Transducer"/>
+    <label for="sensor">Distance</label>
+    </span>    
+    <!-- Button following the checkboxes calling the checkbox function when it is pressed -->
+    <input type="button" onclick="getCheckedCheckboxesFor('sensor');" value="Graph Values" />
+</div> <!-- End checkbox container div -->
+</fieldset>
+</form>
+
+<!-- fieldset encompassing the slider, and the elements associated with the slider -->
+<fieldset>
+<!-- top right header for the slider section -->
+<legend>Slide for custom timerange for graph</legend>
+<!-- slider label div making the first "line" of the slider fieldset -->
+<div style="width:100%">
+<!-- paragraph containing the label for the slider -->
+<p>
+  <label for="amount">Date range:</label>
+  <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
+</p>
+</div>
+<!-- Slider div -->
+<div id="slider-range" class="divLeft"></div>
+
+<!-- separator between the slider and the graph button for the slider -->
+<span class = "separator" style="height: 10px;"><br></span>
+
+<!-- graph button for the slider -->
+<input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Graph' onClick='dateSlider()'>
+
+<br><!-- create some trailing whitespace on the slider fieldset -->
+</fieldset><!-- end slider fieldset -->
+
+
+
+<!-- Start and end prompt label paragraph -->
+<p>
+ 
+</p>
+
+<fieldset>
+<legend>Select custom timerange to graph(yyyy-mm-dd hh:mm:ss 24hour format)</legend> 
+<!-- Start input box -->
+<input type="text" id='start_time' placeholder="Start Date"/>
+<!-- Span inline separator -->
+<span>
+TO
+</span>
+<!-- End input box -->
+<input type='text' id='end_time' placeholder="End Date">
+
+<!-- start and end submit button to call the goTo() function to handle the input -->
+<input type='button' id='link_str' value='Graph' onClick='goTo()'>
+
+</fieldset>
+
+<br>
+
+<select id='table_select' onChange="changeTable(this.value)" style="width: 100%; height: 50px; font-size: 16px; text-align-last:center; background-color: #4CAF50;">
+</select>
+
+<!-- footer to show when the website was last updated -->
+<footer> 
+<br>
+Website last updated 2018-07-17 4:40
+</footer>
+
+
+
 
 
 
@@ -119,6 +228,12 @@ if(sessionStorage.getItem('sensor') != null) {
 sensor = sessionStorage.getItem('sensor');
 } 
 
+
+if(sessionStorage.getItem('Table') == null) {
+//set the default table from the database that the table on the website pulls from
+sessionStorage.setItem('Table', 'DataTable');
+}
+
 var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
 //ajax call using jquery to sqlMult req for the fields in the database for N lines 
 function getFromSql(field,lines,callback) {
@@ -128,9 +243,27 @@ ajaxCalls[ajaxCalls.length] =
          async: true,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: [field,lines]},
+	 data: {arguments: [field,lines,sessionStorage.getItem('Table')]},
          success: function(output) {
 		    callback(output);
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+//calls for the names of the tables in the database
+function tableNamesQuery(callback) { 
+	 ret = null;
+	 $.ajax({ url: "TableNameReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
+         success: function(output) {
+	 callback(output);
+	 
 		    
 }
 		
@@ -437,51 +570,7 @@ function getCheckedCheckboxesFor(checkboxName) {
 </script> <!-- End checkbox script -->
 
 
-<!-- checkboxes to graph other sensors container -->
-<form>
-<fieldset> 
-<legend>Select measurements to graph</legend>
-<div class="data">    <!-- container for the checkboxes --> 
-    <!-- Bunch of spans for the checkboxes so that they are inline of each other -->
-    <span>
-    <input name="sensor" type="checkbox" value="PressureTemperature"/>
-    <label for="sensor">Air Temperature</label>
-    </span> 
-    
-    <span>
-    <input name="sensor" type="checkbox" value="Temperature1"/>
-    <label for="sensor">Water Temperature</label>
-    </span>
 
-    <span>
-    <input name="sensor" type="checkbox" value="PressurePressure"/>
-    <label for="sensor">Pressure</label>
-    </span>
-    
-    <span>
-    <input name="sensor" type="checkbox" value="PressureAlititude"/>
-    <label for="sensor">Altitude</label>
-    </span>
-
-    <span>
-    <input name="sensor" type="checkbox" value="Humidity"/>
-    <label for="sensor">Humidity</label>
-    </span>    
-    
-    <span>
-    <input name="sensor" type="checkbox" value="HumidityHeatIndex"/>
-    <label for="sensor">Heat Index</label>
-    </span>
-
-    <span>
-    <input name="sensor" type="checkbox" value="Transducer"/>
-    <label for="sensor">Distance</label>
-    </span>    
-    <!-- Button following the checkboxes calling the checkbox function when it is pressed -->
-    <input type="button" onclick="getCheckedCheckboxesFor('sensor');" value="Graph Values" />
-</div> <!-- End checkbox container div -->
-</fieldset>
-</form>
 <!-- Script handling user input for the custom range -->
 <script type="text/javascript"> 
 function goTo()
@@ -510,27 +599,6 @@ function goTo()
 }
 </script> <!-- End custom range script -->
 
-<!-- Start and end prompt label paragraph -->
-<p>
- 
-</p>
-
-<fieldset>
-
-<legend>Select custom timerange to graph(yyyy-mm-dd hh:mm:ss 24hour format)</legend> 
-<!-- Start input box -->
-<input type="text" id='start_time' placeholder="Start Date"/>
-<!-- Span inline separator -->
-<span>
-TO
-</span>
-<!-- End input box -->
-<input type='text' id='end_time' placeholder="End Date">
-
-<!-- start and end submit button to call the goTo() function to handle the input -->
-<input type='button' id='link_str' value='Graph' onClick='goTo()'>
-
-</fieldset>
 
 <!-- script for setting up the slider -->
 <script> 
@@ -544,7 +612,7 @@ function firstTimeQuery(callback) {
          async: true,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: []}, //no arguments needed for this
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
          success: function(output) {
 	 callback(output);
 	 
@@ -562,7 +630,7 @@ var ret = null;
          async: true,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: []}, //the line argument is not actually passed in and is just a holdover from another function
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //the line argument is not actually passed in and is just a holdover from another function
          success: function(output) {
 	 	  
 		    callback(output);
@@ -651,37 +719,40 @@ window.scrollTo(0,0);
 //end slider script
 </script>
 
-<p>
 
-</p>
 
-<!-- fieldset encompassing the slider, and the elements associated with the slider -->
-<fieldset>
-<!-- top right header for the slider section -->
-<legend>Slide for custom timerange for graph</legend>
-<!-- slider label div making the first "line" of the slider fieldset -->
-<div style="width:100%">
-<!-- paragraph containing the label for the slider -->
-<p>
-  <label for="amount">Date range:</label>
-  <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
-</p>
-</div>
-<!-- Slider div -->
-<div id="slider-range" class="divLeft"></div>
+<script> 
 
-<!-- separator between the slider and the graph button for the slider -->
-<span class = "separator" style="height: 10px;"><br></span>
+function populateTables(tables) {
 
-<!-- graph button for the slider -->
-<input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Graph' onClick='dateSlider()'>
+select = document.getElementById('table_select');
+for (var i = 0; i < tables.length; i++){
 
-<br><!-- create some trailing whitespace on the slider fieldset -->
-</fieldset><!-- end slider fieldset -->
+ 
+    var opt = document.createElement('option');
+    opt.value = tables[i];
+    opt.innerHTML = tables[i];
+    select.appendChild(opt);
+    if(select.options[i].value == sessionStorage.getItem('Table')){
+    select.options[i].defaultSelected = true;
+    }
+}
+$.LoadingOverlay("hide");
+}
+$.LoadingOverlay("show");
+tableNamesQuery(populateTables);
+
+function changeTable(table) {
+$.LoadingOverlay("show");
+//set the table to the updated selection
+sessionStorage.setItem('Table', table);
+alert(table);
+//refresh the page after the table changes because i'm too lazy to bother functioniz-ing everything
+history.go(0); 
+}
+
+
+</script>
+
 
 </body>
-<!-- footer to show when the website was last updated -->
-<footer> 
-<br>
-Website last updated 2018-07-17 4:40
-</footer>
