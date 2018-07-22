@@ -65,6 +65,7 @@ text-align: center;
 .resetbutton { 
 display: block;
 border: none;
+float:left;
 width: 100%;
 height: 50px;
 background-color: #f6931f;
@@ -187,19 +188,23 @@ float: left;
 <!-- separator to create some spacing at the bottom of the fieldset -->
 <span class = "separator" style="height:10px; width:100%"><br></span>
 
+<!-- Reset button for restarting realtime updates after sliding through data -->
+<input type='button' class='resetbutton' id='link_str' value='Reset back to realtime updates' onClick='resetTime()'>
+
 </fieldset>
 <br>
 </form>
 
-<!-- Reset button for restarting realtime updates after sliding through data -->
-<input type='button' class='resetbutton' id='link_str' value='Reset back to realtime updates' onClick='resetTime()'>
+
 
  
-<div style= "height: 10px"></div>
+<div style= "height: 5px"></div>
 
+<fieldset>
+<legend> Select other sensor platforms </legend>
 <select id='table_select' onChange="changeTable(this.value)" style="width: 100%; height: 50px; font-size: 16px; text-align-last:center; background-color: #4CAF50;">
 </select>
-
+</fieldset>
 
 <!-- footer for the website showing when the website was last updated -->
 <footer>
@@ -441,7 +446,7 @@ $.LoadingOverlay("hide");
 
 //what happens when one of the graph buttons are clicked
 $('#sensorsTable tbody').on( 'click', 'button', function () {
-        
+        $.LoadingOverlay("show");
         var uIndex = table.row($(this).closest("tr")).index(); //get the unsorted row index of the button 
 	//store the field that we want to graph in some session storage 
 	sessionStorage.setItem('sensor', fields[uIndex]);
