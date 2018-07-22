@@ -182,13 +182,15 @@ TO
 
 <br>
 
+<fieldset>
+<legend>Select sensor platform</legend>
 <select id='table_select' onChange="changeTable(this.value)" style="width: 100%; height: 50px; font-size: 16px; text-align-last:center; background-color: #4CAF50;">
 </select>
-
+</fieldset>
 <!-- footer to show when the website was last updated -->
 <footer> 
 <br>
-Website last updated 2018-07-21 04:55
+Website last updated 2018-07-17 4:40
 </footer>
 
 
@@ -235,16 +237,26 @@ if(sessionStorage.getItem('Table') == null) {
 sessionStorage.setItem('Table', 'DataTable');
 }
 
+
+//converts the format that the table uses to display time to the format that our SQL table uses to store it
+function plotToSql(date) {
+var ret = "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
+if(date.length == 10) {
+ret = ret.concat("000000");
+} 
+return ret;
+}
+
 var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
 //ajax call using jquery to sqlMult req for the fields in the database for N lines 
-function getFromSql(field,lines,callback) {
+function getFromSql(field,lines,domain,callback) {
 var ret = null;
 ajaxCalls[ajaxCalls.length] = 
 	 $.ajax({ url: "sqlMultReq.php",
          async: true,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: [field,lines,sessionStorage.getItem('Table')]},
+	 data: {arguments: [field,lines,plotToSql(domain[0]),plotToSql(domain[1]),sessionStorage.getItem('Table')]},
          success: function(output) {
 		    callback(output);
 		    
@@ -272,6 +284,7 @@ function tableNamesQuery(callback) {
 return ret; //return the result of the ajax call
 }
 
+
 var interval; //the variable used for the running plot update loop
 var currentFields; //used to keep track of what is currently graphed so that I can use this if a user enters a custom start and end date in
 //draw the plots at plotName dive for the given array of fields and given time domain
@@ -285,6 +298,8 @@ var query;
 
 
 function queryCallback(result) {
+
+
 
 query = result;
 
@@ -466,13 +481,13 @@ Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,
 
 
 //realtime updater of the plot 
-function getFromSqlUpdater(fields,lines,async) {
+function getFromSqlUpdater(fields,lines,domain,async) {
 ajaxCalls[ajaxCalls.length] =
 	 $.ajax({ url: "sqlMultReq.php",
          async: async,
 	 type: "POST",
          dataType: 'json',
-	 data: {arguments: [fields,lines]},
+	 data: {arguments: [fields,lines,plotToSql(domain[0]),plotToSql(domain[1]),sessionStorage.getItem('Table')]},
          success: function(output) {
 	 var newTemps = output.data;	 
 	 var newDates = output.time;
@@ -526,17 +541,29 @@ ajaxCalls[ajaxCalls.length] =
 
 //calls the function that is the first parameter for every second parameter millis
 interval = setInterval(function() {
+
+if(domain.length == 0) {
+domain[0] = "0";
+domain[1] = "9999-99-99";
+}
 //call the function that will attempt to poll for new points in the database
 //asks for the last 15 lines of the database asyncronously so that this does not freeze the website
-getFromSqlUpdater(fields,"90",true);
+getFromSqlUpdater(fields,"90",domain,true);
 
 },60000); //call the updater function every 60 seconds
 
 
 $.LoadingOverlay("hide");
 }
+if(domain.length == 0) {
+domain[0] = "0";
+domain[1] = "9999-99-99";
+getFromSql(fields,"0",domain,queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
+domain = [];
+} else {
+getFromSql(fields,"0",domain,queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
+}
 
-getFromSql(fields,"0",queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
 
 
 
