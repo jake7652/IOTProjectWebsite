@@ -31,12 +31,21 @@ define('DB_NAME', $contents[3]);
 
 $fields = array("RTCTemperature");
 $lines = 0;
-
 $table = "DataTable";
+$min_time = "0";
+$max_time = "99999999999999";
 if(isset($_POST['arguments'])) {
 $fields = $_POST['arguments'][0]; 
-$lines = $_POST['arguments'][1]; 
-$table = $_POST['arguments'][2];
+$lines = $_POST['arguments'][1];
+$min_time = $_POST['arguments'][2];
+$max_time = $_POST['arguments'][3];
+$table = $_POST['arguments'][4];
+}
+
+if($min_time == null) {
+
+$min_time = "0";
+$max_time = "99999999999999";
 }
 
 //get connection
@@ -45,7 +54,8 @@ $mysqli = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
 
 
 if(!$mysqli){
-	die("Connection failed: " . $mysqli->error);
+	$table = "DataTable";
+	$mysqli = new mysqli("localhost", DB_USERNAME, DB_PASSWORD, DB_NAME);
 }
 
 $query = array();
@@ -57,18 +67,20 @@ $result = array();
 //print($num_lines);
 //print("\n");
 if($lines == 0) {
-$lines_query = $mysqli->query("SELECT COUNT(*) FROM " . $table . "");
+$lines_query = $mysqli->query("SELECT COUNT(*) FROM " . $table . " WHERE RTCDataTime >= " . $min_time . " AND RTCDataTime <= " . $max_time . "");
 $num_lines = mysqli_fetch_array($lines_query)[0];
 $lines_query->close();
 $line_limit = 10000;
-$interval = round($num_lines/$line_limit);
+$interval = floor($num_lines/$line_limit) + 1;
 if($num_lines > $line_limit) {
 
 for($i = 0; $i < $num_fields;$i++) {
-$query[$i] = "SELECT * FROM ( SELECT @row := @row +1 AS rownum, " . $fields[$i] . " FROM ( SELECT @row :=0) r, " . $table . " ) ranked WHERE rownum % " . $interval . " = 1";
+$query[$i] = "SELECT * FROM ( SELECT @row := @row +1 AS rownum, " . $fields[$i] . " FROM ( SELECT @row :=0) r, " . $table . " WHERE RTCDataTime >= " . $min_time . " AND RTCDataTime <= " . $max_time . " ) ranked WHERE rownum % " . $interval . " = 1";
+//echo json_encode($query[$i]);
 $result[$i] = $mysqli->query($query[$i]);
+//echo json_encode(mysqli_num_rows($result[$i]));
 }
-$time_query = "SELECT * FROM ( SELECT @row := @row +1 AS rownum, RTCDataTime FROM ( SELECT @row :=0) r, " . $table . " ) ranked WHERE rownum % " . $interval . " = 1";
+$time_query = "SELECT * FROM ( SELECT @row := @row +1 AS rownum, RTCDataTime FROM ( SELECT @row :=0) r, " . $table . " WHERE RTCDataTime >= " . $min_time . " AND RTCDataTime <= " . $max_time . ") ranked WHERE rownum % " . $interval . " = 1";
 
 } else {
 for($i = 0; $i < $num_fields;$i++) {
@@ -88,6 +100,7 @@ $result[$i] = $mysqli->query($query[$i]);
 $time_query = sprintf("SELECT RTCDataTime FROM ( SELECT * FROM " . $table . " ORDER BY TransmissionKey DESC LIMIT " . $lines . ") sub ORDER BY TransmissionKey ASC;");
 }
 
+//echo json_encode(mysqli_num_rows($result[0]));
 $increment = 1;
 //if(mysql_num_rows($result[0]) > 1000) {
 //$increment = round(mysql_num_rows($result[0])/1000); 
