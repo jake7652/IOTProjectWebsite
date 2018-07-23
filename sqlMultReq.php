@@ -49,13 +49,13 @@ $max_time = "99999999999999";
 }
 
 //get connection
-$mysqli = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
+$mysqli = @mysqli_connect(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
 
 
 
 if(!$mysqli){
 	$table = "DataTable";
-	$mysqli = new mysqli("localhost", DB_USERNAME, DB_PASSWORD, DB_NAME);
+	$mysqli = @mysqli_connect("localhost", DB_USERNAME, DB_PASSWORD, DB_NAME);
 }
 
 $query = array();
