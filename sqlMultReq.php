@@ -71,7 +71,7 @@ $lines_query = $mysqli->query("SELECT COUNT(*) FROM " . $table . " WHERE RTCData
 $num_lines = mysqli_fetch_array($lines_query)[0];
 $lines_query->close();
 $line_limit = 10000;
-$interval = floor($num_lines/$line_limit) + 1;
+$interval = ceil($num_lines/$line_limit);
 if($num_lines > $line_limit) {
 
 for($i = 0; $i < $num_fields;$i++) {
