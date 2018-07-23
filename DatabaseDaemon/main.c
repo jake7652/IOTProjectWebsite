@@ -8,6 +8,8 @@
 //#include <stdlib.h>
 
 
+
+
 //MYSQL
 //#include <my_global.h>
 #include <mysql.h>
@@ -87,9 +89,10 @@ while (fgets(line, sizeof(line), plist)) {
 
 
 char checkQuery[255];
-strcpy(checkQuery,"SHOW TABLES LIKE '");
-strcat(checkQuery, file2[4]);
-strcat(checkQuery, "';");
+char *checkQueryPtr;
+checkQueryPtr = strcpy(checkQuery,"SHOW TABLES LIKE '");
+checkQueryPtr = strcat(checkQuery, file2[4]);
+checkQueryPtr = strcat(checkQuery, "';");
 MYSQL_RES *confresCheck;
 while(mysql_query(con, checkQuery)) {
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
@@ -99,8 +102,14 @@ sleep(1);
 }
 char ** checkRow;
 confresCheck = mysql_store_result(con);
-printf(checkQuery);
-printf("\n");
+
+
+printf("\n --------------------------- TABLE EXISTS CHECK ---------------------\n \n");
+printf(checkQueryPtr);
+printf("\n \n --------------------------- TABLE EXISTS CHECK ---------------------\n \n");
+
+
+printf(" \n --------------------------- DOES TABLE EXIST? ---------------------\n \n");
 
 if(mysql_num_rows(confresCheck) != 0) {
 printf("Table exists, continuing \n");
@@ -115,6 +124,8 @@ printf(tableQuery);
 mysql_query(con, tableQuery);
 
 }
+printf("\n --------------------------- DOES TABLE EXIST? ---------------------\n \n");
+
 //exit(0);
 //the string that is the query to insert into the database
 char inQuery[255];
@@ -124,10 +135,6 @@ char * tempF = "";
 strcat(inQuery,file2[4]);
 strcat(inQuery," VALUES ");
 //strcat(inQuery," (");
-
-printf("\n");
-printf(inQuery);
-printf("\n");
 
 //string for the running query to poll data from the local database
 char query[1023]="";
@@ -139,6 +146,12 @@ printf("\n");
 
 strcat(query,"DataTable");
 strcat(query, " ORDER BY RTCDataTime DESC LIMIT 90) sub ORDER BY RTCDataTime ASC;");
+
+printf("--------------------------- RUNNING UPDATE QUERY ---------------------\n \n");
+
+printf(query);
+
+printf("\n \n --------------------------- RUNNING UPDATE QUERY ---------------------\n \n");
 
 //string for the query to get the last line of the remote database
 char lastQuery[1023] = "";
@@ -154,9 +167,9 @@ char lastTime[255] = "";
 MYSQL_RES *confresTime;
 
 
-
-printf("\n");
+printf("\n --------------------------- LAST ROW QUERY ---------------------\n \n");
 printf(lastQuery);
+printf("\n \n --------------------------- LAST ROW QUERY ---------------------\n \n");
 
 //poll the last line of the remote database
 while(mysql_query(con, lastQuery)) {
