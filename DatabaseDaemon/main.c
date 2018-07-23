@@ -212,6 +212,9 @@ char * val;
 //basically infinite loop
 while(!STOP) {
 
+//flag to tell whether the connection was interrupted
+bool connectionInterrupted = false;
+
 bool newData = false; //is there new data that needs to be inserted?
 //insert query alternative char pointer/array
 char *command;
@@ -228,6 +231,9 @@ while(row = mysql_fetch_row(confres)) {
 
 //if we are looking at a row with a newer timestamp than the last one, then build the insert query
 if(strcmp(row[Time],lastTime) > 0) {
+
+
+
 newData = true;
 if(rowCounter > 0) {
 command = strcat(inQueryTemp, ",");
@@ -275,7 +281,34 @@ rowCounter++;
 command = strcat(inQueryTemp, ")");
 
 
+//if we have a insert command that is getting too long we have to just do the insert and reset the string length
+if(strlen(inQueryTemp) >= 1400000) {
+rowCounter = 0;
+newData = false;
 
+command = strcat(inQueryTemp, ";");
+
+printf("\n");
+printf(command);
+printf("\n");
+
+while(mysql_query(con, command)) {
+connectionInterrupted = true;
+//if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
+fprintf(stderr, "%s\n", mysql_error(con));
+mysql_close(con);
+mysql_close(localCon);
+mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 1);
+sleep(1);
+}
+
+command = strcpy(inQueryTemp,"");
+strcpy(inQueryTemp, "");
+command = strcat(inQueryTemp,inQuery);
+
+
+}
 
 //inserthe values into the remote database
 
@@ -286,8 +319,6 @@ command = strcat(inQueryTemp, ")");
 
 }
 command = strcat(inQueryTemp, ";");
-//flag to tell whether the connection was interrupted
-bool connectionInterrupted = false;
 
 //if we have new rows to insert, then insert those, otherwise we don't really do anything
 if(newData==true) {
@@ -346,8 +377,6 @@ void finish_with_error(MYSQL *con)
 
   		exit(1);
     }
-
-
 
 
 
