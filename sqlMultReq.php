@@ -70,7 +70,7 @@ if($lines == 0) {
 $lines_query = $mysqli->query("SELECT COUNT(*) FROM " . $table . " WHERE RTCDataTime >= " . $min_time . " AND RTCDataTime <= " . $max_time . "");
 $num_lines = mysqli_fetch_array($lines_query)[0];
 $lines_query->close();
-$line_limit = 10000;
+$line_limit = 3600;
 $interval = ceil($num_lines/$line_limit);
 if($num_lines > $line_limit) {
 
