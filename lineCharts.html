@@ -82,7 +82,7 @@ float:left;
 
 <fieldset>
 <legend style="font-size: 20px ">Toolbar</legend>
-<div id="plot" style="width:100%;height:85%;"></div>
+<div id="plot" style="width:90%;height:85%;"></div>
 
 <p>
 
@@ -285,10 +285,10 @@ return ret; //return the result of the ajax call
 }
 
 
-var interval; //the variable used for the running plot update loop
+var interval ; //the variable used for the running plot update loop
 var currentFields; //used to keep track of what is currently graphed so that I can use this if a user enters a custom start and end date in
 //draw the plots at plotName dive for the given array of fields and given time domain
-function drawPlots(fields,plotName,domain) {
+function drawPlots(fields,plotName,domain,realtime) {
 
 $.LoadingOverlay("show");
 currentFields = fields;
@@ -471,7 +471,7 @@ layout['title'] = fields[0].split(/(?=[A-Z][a-z])/).join(" ");
 
 //set the size of the graph area. This helps for when the graph is downloaded as a png so the image is the proper resolution.
 layout['autosize'] = false; 
-layout['width'] = windowWidth;
+layout['width'] = windowWidth*.9; //I found that expanding it out to 100% would make the webpage slightly too wide with the encompassing fieldset
 layout['height'] = (windowHeight*.8); //the 5% difference here from the div's height is intentional to prevent the graph from cutting off text under it 
 
 //Draw a new plot every time there is a call made to the function. 
@@ -543,12 +543,19 @@ ajaxCalls[ajaxCalls.length] =
 interval = setInterval(function() {
 
 if(domain.length == 0) {
+
 domain[0] = "0";
 domain[1] = "9999-99-99";
 }
+
+//check against whether the graph calls for realtime updates before calling a ajax update 
+if(realtime) {
 //call the function that will attempt to poll for new points in the database
-//asks for the last 15 lines of the database asyncronously so that this does not freeze the website
+//asks for the last 90 lines of the database asyncronously so that this does not freeze the website
 getFromSqlUpdater(fields,"90",domain,true);
+}
+
+
 
 },60000); //call the updater function every 60 seconds
 
@@ -571,7 +578,7 @@ getFromSql(fields,"0",domain,queryCallback); //get all lines for the fields from
 
 } //end drawPlots function
 
-drawPlots(sensor,"plot",[]); //call the drawPlots function for the sensor that was either stored in local storage or some preset default
+drawPlots(sensor,"plot",[],true); //call the drawPlots function for the sensor that was either stored in local storage or some preset default
 </script> <!-- End main plot script -->
 	
 <script type="text/javascript">
@@ -590,7 +597,7 @@ function getCheckedCheckboxesFor(checkboxName) {
         values.push(el.value);
     });
     //draw a plot with the selected checkboxes
-    drawPlots(values,"plot",[]);
+    drawPlots(values,"plot",[],true);
     //return the array of values. Mainly for use for debugging with a alert of the return of this function
     return values;
     
@@ -622,7 +629,7 @@ function goTo()
     clearInterval(interval);
    
     //redraw the plot with the new start and end interval
-    drawPlots(currentFields,"plot",[start,end]);
+    drawPlots(currentFields,"plot",[start,end],false);
  
 }
 </script> <!-- End custom range script -->
@@ -730,7 +737,6 @@ function dateSlider() {
 
 //scroll to top of the page
 window.scrollTo(0,0);
-
 //abort all ajax calls
     for(var i = 0; i < ajaxCalls.length; i++) {
 	ajaxCalls[i].abort();
@@ -740,7 +746,7 @@ window.scrollTo(0,0);
     clearInterval(interval);
     //redraw the plot with the new start and end interval
     //just call to draw new plot for the updated range
-    drawPlots(currentFields,"plot",[sliderToPlot(selectedMin),sliderToPlot(selectedMax)]);
+    drawPlots(currentFields,"plot",[sliderToPlot(selectedMin),sliderToPlot(selectedMax)],false);
 
 }
 
