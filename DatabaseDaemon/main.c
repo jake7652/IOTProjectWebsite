@@ -1,3 +1,4 @@
+
 //#include <sys/types.h>
 //#include <sys/stat.h>
 //#include <fcntl.h>
@@ -113,6 +114,7 @@ printf(" \n --------------------------- DOES TABLE EXIST? ---------------------\
 
 if(mysql_num_rows(confresCheck) != 0) {
 printf("Table exists, continuing \n");
+mysql_free_result(confresCheck);
 } else {
 printf("Table does not exist, creating table");
 printf("\n");
@@ -124,6 +126,7 @@ printf(tableQuery);
 mysql_query(con, tableQuery);
 
 }
+
 printf("\n --------------------------- DOES TABLE EXIST? ---------------------\n \n");
 
 //exit(0);
@@ -188,6 +191,7 @@ sleep(1);
 //store the result of the last line query
 confresTime = mysql_store_result(con);
 
+
 //if there is a row with a time string, store it in the last time variable, otherwise the last time variable will just be ""
 while (row = mysql_fetch_row(confresTime)){
 strcat(lastTime,row[Time]);
@@ -196,6 +200,8 @@ strcat(lastTime,row[Time]);
 //print the last time from the remote database
 printf("\n");
 printf(lastTime);
+
+mysql_free_result(confresTime);
 
 //result variable for the running request to the remote database
 MYSQL_RES *confres;
@@ -222,17 +228,21 @@ numfields = mysql_num_fields(confres);
 
 char * val;
 
-//basically infinite loop
-while(!STOP) {
+//insert query alternative char pointer/array
+char *command;
+//big freaking char array for inserting into the database
+char inQueryTemp[1500000]="";
 
 //flag to tell whether the connection was interrupted
 bool connectionInterrupted = false;
 
 bool newData = false; //is there new data that needs to be inserted?
-//insert query alternative char pointer/array
-char *command;
-//big freaking char array for inserting into the database
-char inQueryTemp[1500000]="";
+
+//basically infinite loop
+while(!STOP) {
+
+connectionInterrupted = false;
+newData = false;
 //start building the start of the insert query
 command = strcpy(inQueryTemp,"");
 command = strcat(inQueryTemp,inQuery);
@@ -336,6 +346,8 @@ command = strcat(inQueryTemp,inQuery);
 }
 command = strcat(inQueryTemp, ";");
 
+mysql_free_result(confres);
+
 //if we have new rows to insert, then insert those, otherwise we don't really do anything
 if(newData==true) {
 printf("\n");
@@ -397,6 +409,7 @@ void finish_with_error(MYSQL *con)
 
   		exit(1);
     }
+
 
 
 
