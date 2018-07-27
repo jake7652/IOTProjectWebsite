@@ -65,21 +65,25 @@ while (fgets(line, sizeof(line), plist)) {
 }
 
 
-
  //connection for the remote database
-    MYSQL *con = mysql_init(NULL);
+    MYSQL con;
+    mysql_init(&con);
+
+
 //connection for the local database
     MYSQL *localCon = mysql_init(NULL);
 
-    if (con == NULL)
+    if (&con == NULL)
         {
-            fprintf(stderr, "%s\n", mysql_error(con));
+            fprintf(stderr, "%s\n", mysql_error(&con));
             exit(1);
         }
+        mysql_options(&con,MYSQL_OPT_COMPRESS,1);
+
 //create the connection to the remote database
-    if (mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
+    if (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
  		{
-      		finish_with_error(con);
+      		finish_with_error(&con);
   		}
 
 //create the connection to the local database
@@ -87,6 +91,7 @@ while (fgets(line, sizeof(line), plist)) {
  		{
       		finish_with_error(localCon);
   		}
+
 
 //char array to store the query that checks to see if the table we want exists
 char checkQuery[255];
@@ -99,15 +104,15 @@ checkQueryPtr = strcat(checkQuery, "';");
 //the result variable for the table check
 MYSQL_RES *confresCheck;
 //query the remote database for whether the table is present or not
-while(mysql_query(con, checkQuery)) {
+while(mysql_query(&con, checkQuery)) {
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-fprintf(stderr, "%s\n", mysql_error(con));
-mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 1);
+fprintf(stderr, "%s\n", mysql_error(&con));
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
 sleep(1);
 }
 
 //store the result of the table present check in the result variable
-confresCheck = mysql_store_result(con);
+confresCheck = mysql_store_result(&con);
 
 //print out the query for the table check
 printf("\n --------------------------- TABLE EXISTS CHECK ---------------------\n \n");
@@ -131,7 +136,7 @@ strcat(tableQuery, file2[4]);
 strcat(tableQuery, " (TransmissionKey VARCHAR(50), SystemID VARCHAR(10), SoftwareVersion VARCHAR(50), HardwareVersion VARCHAR(50), RTCDataTime VARCHAR(45), RTCTemperature DECIMAL(10,2), PressureTemperature DECIMAL(10,2), PressurePressure DECIMAL(10,2), PressureAlititude DECIMAL(10,2), Temperature1 DECIMAL(10,2), Temperature2 DECIMAL(10,2), Humidity DECIMAL(10,2), HumidityTemperature DECIMAL(10,2), HumidityHeatIndex DECIMAL(10,2), Transducer INT(11)); ");
 printf(tableQuery);
 //tell the database to create the table
-mysql_query(con, tableQuery);
+mysql_query(&con, tableQuery);
 
 }
 
@@ -146,23 +151,6 @@ char * tempF = "";
 strcat(inQuery,file2[4]);
 strcat(inQuery," VALUES ");
 
-
-//string for the running query to poll data from the local database
-char query[1023]="";
-
-//build the local query string
-char *queryPT;
-strcat(query,"SELECT * FROM ( SELECT * FROM ");
-printf("\n");
-
-strcat(query,"DataTable");
-strcat(query, " ORDER BY RTCDataTime DESC LIMIT 90) sub ORDER BY RTCDataTime ASC;");
-
-printf("--------------------------- RUNNING UPDATE QUERY ---------------------\n \n");
-
-printf(query);
-
-printf("\n \n --------------------------- RUNNING UPDATE QUERY ---------------------\n \n");
 
 //string for the query to get the last line of the remote database
 char lastQuery[1023] = "";
@@ -183,11 +171,11 @@ printf(lastQuery);
 printf("\n \n --------------------------- LAST ROW QUERY ---------------------\n \n");
 
 //poll the last line of the remote database
-while(mysql_query(con, lastQuery)) {
+while(mysql_query(&con, lastQuery)) {
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-fprintf(stderr, "%s\n", mysql_error(con));
-mysql_close(con);
-mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 1);
+fprintf(stderr, "%s\n", mysql_error(&con));
+mysql_close(&con);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
 sleep(1);
 }
 
@@ -197,7 +185,7 @@ sleep(1);
 
 
 //store the result of the last line query
-confresTime = mysql_store_result(con);
+confresTime = mysql_store_result(&con);
 
 
 //if there is a row with a time string, store it in the last time variable, otherwise the last time variable will just be ""
@@ -205,10 +193,11 @@ while (row = mysql_fetch_row(confresTime)){
 strcat(lastTime,row[Time]);
 }
 
+
 //print the last time from the remote database
 printf("\n");
 printf(lastTime);
-
+printf("\n");
 //free up the memory associated with the result after we are done with it
 mysql_free_result(confresTime);
 
@@ -218,8 +207,17 @@ MYSQL_RES *confres;
 //variable to store the number of fields in the database
 int numfields;
 
+//query all rows with time keys not in the remote db
+char catchupQuery[1023] = "SELECT * FROM DataTable WHERE RTCDataTime > ";
+strcat(catchupQuery,lastTime);
+
+printf("\n");
+printf(catchupQuery);
+printf("\n");
 //get all rows from the remote database
-mysql_query(localCon,"SELECT * FROM DataTable");
+mysql_query(localCon,catchupQuery);
+
+
 
 //get all the rows of the remote database
 confres = mysql_store_result(localCon);
@@ -239,6 +237,11 @@ bool newData = false; //is there new data that needs to be inserted into the rem
 
 //basically infinite loop
 while(!STOP) {
+
+printf("\n");
+printf("\n");
+
+fprintf(stderr, "%s\n", mysql_error(&con));
 
 //reset the connection interrupted and new data variables at the start of the loop
 connectionInterrupted = false;
@@ -271,7 +274,6 @@ command = strcat(inQueryTemp, "(");
 
 //update the last time value
 strcpy(lastTime,row[Time]);
-
 
 //build the insert query for each field
 for(int i = 0; i < numfields; i++) {
@@ -325,17 +327,18 @@ printf("\n");
 printf(command);
 printf("\n");
 
+
 //send the query to the the server and wait until the server is ready to recieve the query
-while(mysql_query(con, command)) {
+while(mysql_query(&con, command)) {
 connectionInterrupted = true;
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-fprintf(stderr, "%s\n", mysql_error(con));
+fprintf(stderr, "%s\n", mysql_error(&con));
 
-mysql_close(con);
+mysql_close(&con);
 mysql_close(localCon);
-con = mysql_init(NULL);
+mysql_init(&con);
 localCon = mysql_init(NULL);
-mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
 mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 1);
 sleep(1);
 }
@@ -365,15 +368,15 @@ printf("\n");
 printf(command);
 printf("\n");
 //query the server to insert the rows with same fault tolerance in case we lose connection
-while(mysql_query(con, command)) {
+while(mysql_query(&con, command)) {
 connectionInterrupted = true;
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-fprintf(stderr, "%s\n", mysql_error(con));
-mysql_close(con);
+fprintf(stderr, "%s\n", mysql_error(&con));
+mysql_close(&con);
 mysql_close(localCon);
-con = mysql_init(NULL);
+mysql_init(&con);
 localCon = mysql_init(NULL);
-mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
 mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 1);
 sleep(1);
 }
@@ -383,18 +386,23 @@ sleep(1);
 //commit the inserts to the remote database
 //mysql_query(con, "COMMIT;");
 sleep(1);
+
+char runningQuery[1023] = "SELECT * FROM DataTable WHERE RTCDataTime > ";
+strcat(runningQuery,lastTime);
+
 //query and store for the next last 90 rows of the local database
 if(connectionInterrupted == false ) {
-if(mysql_query(localCon,query)) {
+if(mysql_query(localCon,runningQuery)) {
+
 //if we fail to query the first time we most likely lost connection, so change the query to selecting all lines(since downtime varies) and attempt to reconnect
-while(mysql_query(localCon,"SELECT * FROM DataTable")) {
+while(mysql_query(localCon,runningQuery)) {
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-fprintf(stderr, "%s\n", mysql_error(con));
-mysql_close(con);
+fprintf(stderr, "%s\n", mysql_error(&con));
+mysql_close(&con);
 mysql_close(localCon);
-con = mysql_init(NULL);
+mysql_init(&con);
 localCon = mysql_init(NULL);
-mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
 mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 1);
 sleep(1);
 }
@@ -403,7 +411,7 @@ sleep(1);
 printf("\n");
 printf("The connection to remote server was broken so we have to repoll all lines from the local db");
 //since the connection can be broken for a indeterminable amount of time, we need to get all rows from the local database again
-mysql_query(localCon,"SELECT * FROM DataTable");
+mysql_query(localCon,runningQuery);
 }
 //store the result of the local DB query
 confres = mysql_store_result(localCon);
