@@ -47,8 +47,26 @@ void BuildSQLStatement(struct SQLStatementComponets x);
     char queryheader []="INSERT INTO DataTable VALUES (";
     char querytail [] = ");";
 
+//trims off the newlines characters from the fgets read
+char * fTrim (char s[]) {
+  int i = strlen(s)-1;
+  if ((i > 0) && (s[i] == '\n'))
+    s[i] = '\0';
+  return s;
+}
+
 main()
 {
+    char commandsFilePath[] = "/var/www/clients/commands";
+    FILE * commandsFile = fopen(commandsFilePath,"r");
+    char stopCode[255] = "3";
+
+    char statusFilePath[] = "/var/www/clients/sensorDaemon";
+    FILE * statusFile = fopen(statusFilePath,"w");
+
+    fprintf(statusFile, "STARTING");
+    fflush(statusFile);
+    fclose(statusFile);
     //Terminal Variables
     int fd,c, res, lennum;
     long tcounter,gcounter,bcounter;
@@ -94,9 +112,19 @@ main()
     sleep(1);
     fd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
     perror(MODEMDEVICE);
-
+    char error[255] = "";
+    strcat(error,MODEMDEVICE);
+    strcat(error, ": ");
+    char * errorPt = strcat(error,strerror(errno));
+    statusFile = fopen(statusFilePath,"w");
+    fprintf(statusFile, errorPt);
+    fflush(statusFile);
+    fclose(statusFile);
     }
-
+    statusFile = fopen(statusFilePath,"w");
+    fprintf(statusFile, "NORMAL_UPDATES");
+    fflush(statusFile);
+    fclose(statusFile);
 
     /* save current port settings */
     tcgetattr(fd,&oldtio);
@@ -144,10 +172,27 @@ main()
 
     tcounter, gcounter, bcounter = 0;
 
-
 //Terminal Loop
     while (STOP==FALSE)
         {
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile, "NORMAL_UPDATES");
+fflush(statusFile);
+fclose(statusFile);
+char line [255] = "";
+commandsFile = fopen(commandsFilePath, "r");
+fgets(line, sizeof(line), commandsFile);
+fflush(commandsFile);
+fclose(commandsFile);
+strcpy(line,fTrim(line));
+if(strcmp(line,stopCode)==0) {
+
+exit(0);
+
+
+
+}
+
 
         /* loop forever input */
         res = read(fd,buf,255);   /* returns after 1 chars have been input */
@@ -302,6 +347,14 @@ main()
                 tcsetattr(fd,TCSANOW,&newtio);
                 //print out the error on the usb device
                 perror(MODEMDEVICE);
+                char error[255] = "";
+                strcat(error,MODEMDEVICE);
+                strcat(error, ": ");
+                char * errorPt = strcat(error,strerror(errno));
+                statusFile = fopen(statusFilePath,"w");
+                fprintf(statusFile, errorPt);
+                fflush(statusFile);
+                fclose(statusFile);
                 //print out that it was bad and some other stuff
                 printf("%s\n","Bad");
                 printf("<+>%d<+>%d\n", res, bcounter);
