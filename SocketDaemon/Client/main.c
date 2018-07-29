@@ -18,15 +18,19 @@ char * fTrim (char s[]) {
 int main(int argc, char const *argv[])
 {
 
-//char arrays for storing the contents of the databaseSettings
-   char line [255];
-   char file [10][255];
-   char table[] = "";
-
+char line [255] = "";
+char file [10][255];
+char table[255] = "";
 //File to store the settings for the database
 FILE *plist = fopen("/var/www/databaseSettings", "r");
 
 
+    char clientsLoc[] = "/var/www/clients/";
+    int daemons = 2;
+    char * daemonPaths[2] = {"/var/www/clients/commitDaemon","/var/www/clients/sensorDaemon"};
+    //FILE * daemonStatusFiles[2] = {fopen("/var/www/clients/commitDaemon","r"),fopen("/var/www/clients/sensorDaemon","r")};
+    char commandFilePath[] = "/var/www/clients/commands";
+    FILE * commandFile;
 //go through each line of the settings file
 int i = 0;
 while (fgets(line, sizeof(line), plist)) {
@@ -52,7 +56,7 @@ while (fgets(line, sizeof(line), plist)) {
     serv_addr.sin_port = htons(PORT);
 
     // Convert IPv4 and IPv6 addresses from text to binary form
-    if(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
+    while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
     {
         printf("\nInvalid address/ Address not supported \n");
         return -1;
@@ -64,11 +68,27 @@ while (fgets(line, sizeof(line), plist)) {
 
     }
 
-    printf("Hello message sent\n");
     while(1) {
-    send(sock , hello , strlen(hello) , 0 );
-    connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+
+    char lineTemp[255] = "";
+    char *lineTempPt = strcpy(lineTemp,hello);
+    lineTempPt = strcat(lineTemp, ",");
+    for(int i = 0; i < daemons; i++ ){
+    FILE * temp = fopen(daemonPaths[i],"r");
+    fgets(line, sizeof(line),temp);
+    lineTempPt = strcat(lineTemp,line);
+    if(i<daemons-1){
+    lineTempPt = strcat(lineTemp, ",");
+    }
+    }
+//    printf(hello);
+    send(sock , lineTempPt , strlen(lineTempPt) , 0 );
+    printf("Information sent: ");
+    printf(lineTempPt);
+    printf("\n");
+    //connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     valread = read( sock , buffer, 1024);
+
     if(valread == 0) {
     printf("Server has gone away");
     printf("\n");
@@ -92,7 +112,18 @@ while (fgets(line, sizeof(line), plist)) {
     }
 
     }
-    printf("%s\n",buffer );
+    if(strcmp(buffer,"6") == 0) {
+
+    } else if(strcmp(buffer,"7") == 0){
+
+    }
+    printf("Command code recieved: ");
+    printf(buffer);
+    printf("\n");
+    commandFile = fopen(commandFilePath,"w");
+    fprintf(commandFile,buffer);
+    fflush(commandFile);
+    fclose(commandFile);
     sleep(1);
     }
 
