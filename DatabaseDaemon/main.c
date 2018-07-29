@@ -6,6 +6,9 @@
 //#include <stdio.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <assert.h>
 //#include <stdlib.h>
 
 
@@ -42,8 +45,25 @@ main()
 {
 
 
+char status[1023] = "";
+char *statusPt;
+
+
+char shouldRun[255] = "0";
+char commandsFile[] = "/var/www/clients/commands";
+FILE *continueRunning = fopen(commandsFile, "r");
+
+char statusFilePath[] = "/var/www/clients/commitDaemon";
+FILE * statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"STARTING");
+fflush(statusFile);
+fclose(statusFile);
+//system("/usr/bin/x-terminal-emulator -e /var/www/Daemons/UpdateDaemon &");
+
 //enum of all fields in the database
 enum fields {Key, ID, SVer, HVer, Time = 4,RTemp=5,PTemp=6,PPress=7,PAlt,Temp1,Temp2,Humidity,HumidityTemp,HumidityHeatIndex,Transducer};
+
+
 
 //char arrays for storing the contents of the databaseSettings
    char line [255];
@@ -80,19 +100,39 @@ while (fgets(line, sizeof(line), plist)) {
         }
         mysql_options(&con,MYSQL_OPT_COMPRESS,1);
 
+
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"CONNECT_REMOTE_DB");
+fflush(statusFile);
+fclose(statusFile);
+
 //create the connection to the remote database
     if (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
  		{
       		finish_with_error(&con);
   		}
-
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"CONNECT_LOCAL_DB");
+fflush(statusFile);
+fclose(statusFile);
 //create the connection to the local database
     if (mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 3306, NULL, 0) == NULL)
  		{
       		finish_with_error(localCon);
   		}
 
+unsigned long thing = mysql_thread_id(&con);
 
+int n = snprintf(NULL,0,"%lu",mysql_thread_id(&con));
+assert(n>0);
+char buffer[n+1];
+int c = snprintf(buffer,n+1,"%lu",mysql_thread_id(&con));
+assert(buffer[n]=='\0');
+assert(c==n);
+printf(buffer);
+printf("\n");
+printf(mysql_stat(&con));
+printf("\n");
 //char array to store the query that checks to see if the table we want exists
 char checkQuery[255];
 //pointer to the check query string so that i can print it out without seg faulting
@@ -104,6 +144,10 @@ checkQueryPtr = strcat(checkQuery, "';");
 //the result variable for the table check
 MYSQL_RES *confresCheck;
 //query the remote database for whether the table is present or not
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"CHECK_TABLE_EXISTS");
+fflush(statusFile);
+fclose(statusFile);
 while(mysql_query(&con, checkQuery)) {
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
 fprintf(stderr, "%s\n", mysql_error(&con));
@@ -136,6 +180,10 @@ strcat(tableQuery, file2[4]);
 strcat(tableQuery, " (TransmissionKey VARCHAR(50), SystemID VARCHAR(10), SoftwareVersion VARCHAR(50), HardwareVersion VARCHAR(50), RTCDataTime VARCHAR(45), RTCTemperature DECIMAL(10,2), PressureTemperature DECIMAL(10,2), PressurePressure DECIMAL(10,2), PressureAlititude DECIMAL(10,2), Temperature1 DECIMAL(10,2), Temperature2 DECIMAL(10,2), Humidity DECIMAL(10,2), HumidityTemperature DECIMAL(10,2), HumidityHeatIndex DECIMAL(10,2), Transducer INT(11)); ");
 printf(tableQuery);
 //tell the database to create the table
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"CREATE_NEW_TABLE");
+fflush(statusFile);
+fclose(statusFile);
 mysql_query(&con, tableQuery);
 
 }
@@ -171,6 +219,10 @@ printf(lastQuery);
 printf("\n \n --------------------------- LAST ROW QUERY ---------------------\n \n");
 
 //poll the last line of the remote database
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"GET_LAST_UPDATE");
+fflush(statusFile);
+fclose(statusFile);
 while(mysql_query(&con, lastQuery)) {
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
 fprintf(stderr, "%s\n", mysql_error(&con));
@@ -215,6 +267,10 @@ printf("\n");
 printf(catchupQuery);
 printf("\n");
 //get all rows from the remote database
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"GET_NEW_ROWS");
+fflush(statusFile);
+fclose(statusFile);
 mysql_query(localCon,catchupQuery);
 
 
@@ -238,10 +294,25 @@ bool newData = false; //is there new data that needs to be inserted into the rem
 //basically infinite loop
 while(!STOP) {
 
-printf("\n");
-printf("\n");
+continueRunning = fopen(commandsFile, "r");
+fgets(line, sizeof(line), continueRunning);
+fflush(continueRunning);
+fclose(continueRunning);
+strcpy(shouldRun,fTrim(line));
+//if the first line of this file is 0, then this daemon has been signaled to be killed but is still running, while 1 is currently running, and 2 is dead and not running, and 3 is signaled to be started
+if(strcmp(shouldRun,"0") == 0) {
 
-fprintf(stderr, "%s\n", mysql_error(&con));
+continueRunning = fopen(commandsFile, "w");
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"KILLED");
+fflush(statusFile);
+fclose(statusFile);
+//signal that the daemon has been killed
+fprintf(continueRunning,"2");
+fflush(continueRunning);
+fclose(continueRunning);
+exit(0);
+}
 
 //reset the connection interrupted and new data variables at the start of the loop
 connectionInterrupted = false;
@@ -333,6 +404,12 @@ while(mysql_query(&con, command)) {
 connectionInterrupted = true;
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
 fprintf(stderr, "%s\n", mysql_error(&con));
+statusFile = fopen(statusFilePath,"w");
+char tempStatus[] = "REMOTE_SQL_ERROR:";
+char *tempStatusPt = strcat(tempStatus,mysql_error(&con));
+fprintf(statusFile,tempStatusPt);
+fflush(statusFile);
+fclose(statusFile);
 
 mysql_close(&con);
 mysql_close(localCon);
@@ -372,6 +449,13 @@ while(mysql_query(&con, command)) {
 connectionInterrupted = true;
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
 fprintf(stderr, "%s\n", mysql_error(&con));
+statusFile = fopen(statusFilePath,"w");
+char tempStatus[] = "REMOTE_SQL_ERROR: ";
+char *tempStatusPt = strcat(tempStatus,mysql_error(&con));
+fprintf(statusFile,tempStatusPt);
+fflush(statusFile);
+fclose(statusFile);
+exit(0);
 mysql_close(&con);
 mysql_close(localCon);
 mysql_init(&con);
@@ -416,6 +500,10 @@ mysql_query(localCon,runningQuery);
 //store the result of the local DB query
 confres = mysql_store_result(localCon);
 strcpy(inQueryTemp, "");
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"RUNNING_UPDATE");
+fflush(statusFile);
+fclose(statusFile);
 }
 return 0;
 }
