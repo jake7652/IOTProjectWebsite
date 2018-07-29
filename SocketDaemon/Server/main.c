@@ -10,13 +10,59 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #define TRUE   1
 #define FALSE  0
 #define PORT 8080
 
+
+char ** splitString(str) {
+
+     int i;
+     int count = 0;
+     const char delims[] = ",";
+     char *result = NULL;
+     char **store = NULL;
+     char **tmp = NULL;
+     result = strtok(str, delims);
+     while (result != NULL) {
+          free(tmp);
+          tmp = malloc(count * sizeof(char *));
+          for (i=0; i<count; i++) {
+               tmp[i] = store[i];
+          }
+          free(store);
+          store = malloc((count + 1) * sizeof(char *));
+          for (i=0; i<count; i++) {
+               store[i] = tmp[i];
+          }
+          store[count] = result;
+          count++;
+         // printf("%s\n", result);
+
+          result = strtok(NULL, delims);
+     }
+
+     free(tmp);
+    // free(store);
+return store;
+
+}
+//trims off the newlines characters from the fgets read
+char * fTrim (char s[]) {
+  int i = strlen(s)-1;
+  if ((i > 0) && (s[i] == '\n'))
+    s[i] = '\0';
+  return s;
+}
+
+
 int main(int argc , char *argv[])
 {
+
+
     int opt = TRUE;
     int master_socket , addrlen , new_socket , client_socket[30] ,
           max_clients = 30 , activity, i , valread , sd;
@@ -25,9 +71,14 @@ int main(int argc , char *argv[])
 
     char buffer[1025];  //data buffer of 1K
 
+
+    const char clientsLoc[] = "/var/www/clients/";
+    const int clientFiles = 3;
+    const char commandFileName[] = "commands";
+    const char clientFileNames[3][1024] = {"commitDaemon","sensorDaemon"};
     //set of socket descriptors
     fd_set readfds;
-
+    char  tables[30][255];
     //a message
     char *message = "ECHO Daemon v1.0 \r\n";
 
@@ -35,6 +86,7 @@ int main(int argc , char *argv[])
     for (i = 0; i < max_clients; i++)
     {
         client_socket[i] = 0;
+        strcpy(tables[i],"");
     }
 
     //create a master socket
@@ -125,7 +177,6 @@ int main(int argc , char *argv[])
             printf("New connection , socket fd is %d , ip is : %s , port : %d \n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
 
 
-
             //add new socket to array of sockets
             for (i = 0; i < max_clients; i++)
             {
@@ -133,17 +184,93 @@ int main(int argc , char *argv[])
                 if( client_socket[i] == 0 )
                 {
                     client_socket[i] = new_socket;
+                    sd = client_socket[i];
                     printf("Adding to list of sockets as %d\n" , i);
 
                     break;
                 }
             }
+
+            valread = read( sd , buffer, 1024);
+
+            if (valread == 0)
+                {
+                    //Somebody disconnected , get his details and print
+                    getpeername(sd , (struct sockaddr*)&address , \
+                        (socklen_t*)&addrlen);
+                    printf("Host disconnected , ip %s , port %d \n" ,
+                          inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
+
+                    //Close the socket and mark as 0 in list for reuse
+                    close( sd );
+                    client_socket[i] = 0;
+                    strcpy(tables[i],"");
+                }
+
+                //Echo back the message that came in
+                else
+                {
+
+                    char tempLoc[1024] = "";
+                    char * tempLocPt;
+                    tempLocPt = strcpy(tempLoc,clientsLoc);
+
+                    //set the string terminating NULL byte on the end
+                    //of the data read
+                    buffer[valread] = '\0';
+                    char ** result = splitString(buffer);
+                    strcpy(buffer,result[0]);
+                    free(result);
+                    tempLocPt = strcat(tempLoc, buffer);
+                    tempLocPt = strcat(tempLoc,"/");
+                    for(int i = 0; i < max_clients; i ++) {
+                    if(strcmp(tables[i],"")==0) {
+                    strcpy(tables[i],tempLoc);
+                    break;
+                    }
+                    }
+                    struct stat st = {0};
+                    char commandPath[255] = "";
+                    char * commandPathPt = strcpy(commandPath,tempLocPt);
+                    commandPathPt = strcat(commandPath,commandFileName);
+                    FILE * commandFile;
+                    if(stat(tempLocPt,&st)==-1) {
+                    printf("directory does not exist so we have to create it  \n");
+                    mkdir(tempLocPt,0700);
+                    for(int i = 0; i<clientFiles-1; i++) {
+                        char tempFileLoc[1024] = "";
+                        char * tempFileLocPt;
+                        tempFileLocPt = strcpy(tempFileLoc,tempLoc);
+                        tempFileLocPt = strcat(tempFileLoc,clientFileNames[i]);
+                        FILE *temp = fopen(tempFileLocPt,"ab+");
+                        fprintf(temp,"100");
+                        fclose(temp);
+                    }
+                    commandFile = fopen(commandPathPt,"w+");
+                    fprintf(commandFile,"100");
+                    fflush(commandFile);
+                    fclose(commandFile);
+                    }
+                    commandFile = fopen(commandPathPt,"r");
+
+
+
+
+                    char line[255] ="";
+                    fgets(line,sizeof(line),commandFile);
+                    strcpy(line,fTrim(line));
+                    fclose(commandFile);
+                    send(sd, line,strlen(line),0);
+                }
+
         }
 
         //else its some IO operation on some other socket
         for (i = 0; i < max_clients; i++)
         {
+            //printf("\n reeeee \n");
             sd = client_socket[i];
+
             if (FD_ISSET( sd , &readfds))
             {
                 valread = read( sd , buffer, 1024);
@@ -167,13 +294,46 @@ int main(int argc , char *argv[])
                 {
                     //set the string terminating NULL byte on the end
                     //of the data read
-                    buffer[valread] = ' ';
-                    buffer[valread+1] = '\0';
-                    send(sd , buffer , strlen(buffer) , 0 );
+
+                    printf("Information recieved: ");
                     printf(buffer);
                     printf("\n");
+                    buffer[valread] = ' ';
+                    buffer[valread+1] = '\0';
+                    char ** tempBuff = splitString(buffer);
+                    char tablePath[255] = "";
+                    char * tablePathPt = strcpy(tablePath,tables[i]);
+                    for(int i2 = 1; i2 < clientFiles; i2++) {
+                    char daemonPath[255] = "";
+                    char * daemonPathPt = strcpy(daemonPath,tablePath);
+                    daemonPathPt = strcat(daemonPath,clientFileNames[i2-1]);
+                    FILE * daemonFile = fopen(daemonPathPt, "w");
+                    fprintf(daemonFile,tempBuff[i2]);
+                    printf("Daemon File: ");
+                    printf(daemonPathPt);
+                    printf("\n");
+                    printf("Status: ");
+                    printf(tempBuff[i2]);
+                    printf("\n");
+                    fclose(daemonFile);
+                    }
+
+                    char commandPath[255] = "";
+                    char * commandPathPt;
+                    commandPathPt = strcat(commandPath,tables[i]);
+                    commandPathPt = strcat(commandPath,commandFileName);
+                    printf(commandPathPt);
+                    printf("\n \n");
+                    FILE * commandFile = fopen(commandPathPt,"r");
+                    char line[255] ="";
+                    fgets(line,sizeof(line),commandFile);
+                    strcpy(line,fTrim(line));
+                    fclose(commandFile);
+                    send(sd, line,strlen(line),0);
+                    free(tempBuff);
                 }
             }
+
         }
     }
 
