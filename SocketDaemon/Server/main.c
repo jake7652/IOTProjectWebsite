@@ -73,9 +73,9 @@ int main(int argc , char *argv[])
 
 
     const char clientsLoc[] = "/var/www/clients/";
-    const int clientFiles = 3;
+    const int clientFiles = 4;
     const char commandFileName[] = "commands";
-    const char clientFileNames[3][1024] = {"commitDaemon","sensorDaemon"};
+    const char clientFileNames[3][1024] = {"commitDaemon","sensorDaemon","commands"};
     //set of socket descriptors
     fd_set readfds;
     char  tables[30][255];
@@ -298,8 +298,7 @@ int main(int argc , char *argv[])
                     printf("Information recieved: ");
                     printf(buffer);
                     printf("\n");
-                    buffer[valread] = ' ';
-                    buffer[valread+1] = '\0';
+                    buffer[valread] = '\0';
                     char ** tempBuff = splitString(buffer);
                     char tablePath[255] = "";
                     char * tablePathPt = strcpy(tablePath,tables[i]);
