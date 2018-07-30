@@ -113,10 +113,11 @@ while (fgets(line, sizeof(line), plist)) {
     }
 
     }
-    //buffer[valread] = '\0';
-    if(strcmp(commandMonitorPtr,buffer)==0) {
+    buffer[valread] = '\0';
+    if(strcmp(commandMonitor,buffer)==0) {
     } else{
-    commandMonitorPtr = strcpy(commandMonitor,buffer);
+    strcpy(commandMonitor,"");
+    strcpy(commandMonitor,buffer);
     if(strcmp(buffer,"6") == 0) {
         system("x-terminal-emulator -e /var/www/daemons/SensorDaemon &");
     } else if(strcmp(buffer,"7") == 0){
