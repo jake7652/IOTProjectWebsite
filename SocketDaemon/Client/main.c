@@ -18,9 +18,9 @@ char * fTrim (char s[]) {
 int main(int argc, char const *argv[])
 {
 
-char line [255] = "";
-char file [10][255];
-char table[255] = "";
+char line [1024] = "";
+char file [10][1024];
+char table[1024] = "";
 //File to store the settings for the database
 FILE *plist = fopen("/var/www/databaseSettings", "r");
 
@@ -71,7 +71,7 @@ while (fgets(line, sizeof(line), plist)) {
     char * commandMonitorPtr =strcpy(commandMonitor,"");
     while(1) {
 
-    char lineTemp[255] = "";
+    char lineTemp[1024] = "";
     char *lineTempPt = strcpy(lineTemp,hello);
     lineTempPt = strcat(lineTemp, ",");
     for(int i = 0; i < daemons; i++ ){
