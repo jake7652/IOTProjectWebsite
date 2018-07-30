@@ -67,7 +67,8 @@ while (fgets(line, sizeof(line), plist)) {
         printf("\nConnection Failed retry in one second \n");
 
     }
-
+    char commandMonitor[1024];
+    char * commandMonitorPtr =strcpy(commandMonitor,"");
     while(1) {
 
     char lineTemp[255] = "";
@@ -112,18 +113,25 @@ while (fgets(line, sizeof(line), plist)) {
     }
 
     }
+    buffer[valread] = '\0';
+    if(strcmp(commandMonitor,buffer)==0) {
+    } else{
+    commandMonitorPtr = strcpy(commandMonitor,buffer);
     if(strcmp(buffer,"6") == 0) {
-
+        system("x-terminal-emulator -e /var/www/daemons/SensorDaemon &");
     } else if(strcmp(buffer,"7") == 0){
-
+        system("x-terminal-emulator -e /var/www/daemons/SQLDaemon &");
     }
     printf("Command code recieved: ");
     printf(buffer);
     printf("\n");
+
     commandFile = fopen(commandFilePath,"w");
     fprintf(commandFile,buffer);
     fflush(commandFile);
     fclose(commandFile);
+    }
+    strcpy(buffer,"");
     sleep(1);
     }
 
