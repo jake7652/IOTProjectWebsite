@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<!-- offline source for jquery used for calling php script from javascript -->
+<script src="jquery-3.3.1.js"></script>
+<script src="/jquery-ui/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="/jquery-ui/jquery-ui.min.css">
+<script src="/DataTables/datatables.min.js"></script>
+<link rel="stylesheet" href="/DataTables/datatables.min.css">
+<script src="/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
+
+<head>
+<!-- Styling for the graph button, the reset button, sliders, and separating spans -->
+<style>
+
+
+
+/* for the fieldsets encompassing the sliders and slider labels */
+legend {
+font-size: 20px;
+position:relative;
+
+
+}
+
+
+/* formatting for the slider background */
+.ui-slider-horizontal {
+width:41%;
+height: 100%;
+display:block;
+float:left;
+padding-bottom: 5px;
+padding-top: 5px;
+}
+
+/* formatting for the actual draggable button on the slider */
+.ui-slider .ui-slider-handle {
+height: 130%;
+width: 4%;
+padding-left: 5px;
+
+}
+
+
+/* formatting for the graph buttons in the last column of the table and the old values button */
+.graphbutton { 
+display: block;
+border: none;
+width: 100%;
+background-color: #4CAF50;
+font-size: 16px;
+cursor: pointer;
+text-align: center;
+
+}
+
+/* what happens when the user hovers over a graph button */
+.graphbutton:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+
+/* formatting for the reset to realtime updates button */
+.resetbutton { 
+display: block;
+border: none;
+float:left;
+width: 100%;
+height: 50px;
+background-color: #f6931f;
+font-size: 16px;
+cursor: pointer;
+text-align: center;
+
+}
+/* what happens when the user hovers over the reset button */
+.resetbutton:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+/* formatting for left oriented divs in the fieldset with the sliders */
+.divLeft {
+width:41%;
+height: 100%;
+display:block;
+float:left;
+
+}
+
+/* formatting for the right divs in the fieldset with the sliders */
+.divRight {
+width: 41%;
+height: 100%;
+display:block;
+float: left;
+
+}
+
+/* formatting for the separator between divs in the fieldset */
+.separator {
+width: 1%;
+display:inline;
+float: left;
+}
+
+</style>
+</head>
+<body>
+
+
+<!-- label for the table -->
+<p style="text-align: center; font-size: 24px;">Sensor Platform Management</p>
+
+<!-- manually add the headers for each column but nothing else -->
+<table id="sensorsTable" class="display" style="width:100%">
+  <thead>
+  <tr>
+    <th>Sensor Platform(by sql table)</th>
+    <th>Last update</th>
+    <th>SQL Update Daemon Status</th>
+    <th>Sensor Daemon Status</th>
+    <th>Start SQL Update Daemon</th>
+    <th>Stop SQL Update Daemon</th>
+    <th>Start Sensor Daemon</th>
+    <th>Stop Sensor Daemon</th>
+  </tr>
+</thead>
+<tbody>
+
+
+</tbody>
+</table>
+<br>
+
+
+
+<!-- footer for the website showing when the website was last updated -->
+<footer>
+website last updated 7-21-2018 04:53
+</footer>
+
+<script>
+
+//used for updating the sensor data in realtime. Asks for the last (lines) of the sql table and then changes the appropriate table columns when done
+var currentUpdate = false;
+function lastUpdateReq() { 
+	 currentUpdate = $.ajax({ url: "TableReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: []}, //no arguments needed for this
+         success: function(output) {
+	 //for every field, go into the row it represents and change the sensor value and the timestamp
+	 for(var i = 0; i < fields.length; i++) {
+         var tempData = table.row(i).data();
+	 tempData[1] = sqlToTable(output[timeField]); 
+         table.row(i).data(tempData); 
+	 }
+	 finished = true; //check if ajax call is done so we can check before trying another
+		    
+}
+		
+});
+return finished; //whether or not we have finished retrieving the updated sensor values so we do not call another before the first is finished
+}
+//used for updating the sensor data in realtime. Asks for the last (lines) of the sql table and then changes the appropriate table columns when done
+var currentUpdate = false;
+//calls for the first line of the RTC data time field
+function lastTimesQuery(callback) { 
+	 ret = null;
+	 $.ajax({ url: "AllLastTimeReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: []}, //no arguments needed for this
+         success: function(output) {
+	 callback(output);
+	 
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+//calls for the first line of the RTC data time field
+function tableNamesQuery(callback) { 
+	 ret = null;
+	 $.ajax({ url: "TableNameReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: []}, //no arguments needed for this
+         success: function(output) {
+	 callback(output);
+	 
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+//calls for the first line of the RTC data time field
+function daemonFileQuery(callback) { 
+	 ret = null;
+	 $.ajax({ url: "DaemonFileReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: []}, //no arguments needed for this
+         success: function(output) {
+	 callback(output);
+	 
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+
+function commandWrite(table, value) {
+ ret = null;
+	 $.ajax({ url: "CommandWrite.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [table, value]}, //no arguments needed for this
+         success: function(output) {
+	 
+	 
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+
+
+}
+
+var UNITS = { //Labels of the units that each sensor uses
+HumidityTemperature: "F",
+PressureTemperature: "F",
+Humidity: "% Saturation",
+HumidityHeatIndex: "F",
+Transducer: "mm",
+PressurePressure: "Hg/mm",
+PressureAlititude: "FT", 
+Temperature1: "F",
+
+};
+
+
+//converts the format that the SQL table uses to store time into a format used for the graph
+function sqlToTable(date) {
+
+return "".concat (date.substring(0,4), "-" , date.substring(4,6) ,"-" , date.substring(6,8) ," " ,date.substring(8,10) ,":" ,date.substring(10,12) ,":" ,date.substring(12,14));
+}
+
+//converts the format that the graph uses to display time to the format that our SQL table uses to store it
+function tableToSql(date) {
+
+return "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
+
+}
+//conversion from the format that the slider uses to display time to the format our SQL table uses to store time
+function sliderToSql(date,time) {
+
+//have to do some formatting using concat and some nested condensed if elses
+return "".concat(date.getFullYear(),(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),((date.getDate()<10) ? '0' +date.getDate() : date.getDate()),time.substring(0,2),time.substring(3,5),time.substring(6,8));
+//return date.getFullYear();
+}
+
+//conversion from the format that our sql table uses to store time to the format that the slider uses to display it
+function sqlToSlider(date) {
+var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
+
+return new Date(formatted);
+}
+
+
+
+var table;
+
+
+var tables = new Array();
+var daemonStatus;
+var lastTimes;
+function lastTimesCallback(output) {
+lastTimes = output;
+for(var i = 0; i < tables.length; i++) {
+
+table.row.add( [
+tables[i],
+sqlToTable(lastTimes[tables[i]]),
+daemonStatus[tables[i]][0],
+daemonStatus[tables[i]][1],
+"<button class=graphbutton value ="+ tables[i] + ",7>Start</button>",
+"<button class=graphbutton value =" +tables[i]+ ",0>Stop</button>",
+"<button class=graphbutton value =" +tables[i] +",6>Start</button>",
+"<button class=graphbutton value =" + tables[i] +",3>Stop</button>",
+]
+).draw(true);
+}
+
+}
+//what happens when one of the graph buttons are clicked
+$('#sensorsTable tbody').on( 'click', 'button', function () {
+        //$.LoadingOverlay("show");
+	var temp = this.value.split(',');
+	commandWrite(temp[0],temp[1]);
+    } );
+
+function daemonFileQueryCallback(output) {
+daemonStatus = output;
+lastTimesQuery(lastTimesCallback);
+}
+
+function tablesCallback(output) {
+tables = output;
+daemonFileQuery(daemonFileQueryCallback);
+}
+
+
+var doneUpdating = true; //check to tell whether the previous ajax requests to update the table are done so we don't have a ton running at once that we don't need
+setInterval(function(){ 
+
+if(doneUpdating) {
+doneUpdating = false;
+tableNamesQuery(runningTablesCallback);
+}
+}, 3000);
+
+function runningLastTimesCallback(output) {
+ lastTimes = output;
+ for(var i = 0; i < tables.length; i++) {
+         var tempData = table.row(i).data();
+	 tempData[1] = sqlToTable(lastTimes[tables[i]])
+	 tempData[2] = daemonStatus[tables[i]][0];
+	 tempData[3] = daemonStatus[tables[i]][1];
+         table.row(i).data(tempData); 
+	 }
+doneUpdating = true;
+}
+function runningDaemonFileQueryCallback(output) {
+daemonStatus = output;
+lastTimesQuery(runningLastTimesCallback);
+}
+function runningTablesCallback(output) {
+tables = output;
+daemonFileQuery(runningDaemonFileQueryCallback);
+}
+
+//create the table frame and store in a variable for easy changes
+  table = $('#sensorsTable').DataTable( {
+
+	"paging": false,
+	"language": {
+	"search": "Sensor Platform search:"
+
+	}
+        //"columnDefs": [ {
+            //"targets": -1,
+            //"data": null,
+            //"defaultContent": "<button>Graph readings</button>"
+      //  } ]
+    } );
+
+tableNamesQuery(tablesCallback);
+
+//show the loading overlay on the website right before we start to pull values from the local database
+$.LoadingOverlay("show");
+
+$.LoadingOverlay("hide");
+
+</script>
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
