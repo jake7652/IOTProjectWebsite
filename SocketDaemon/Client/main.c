@@ -89,7 +89,7 @@ while (fgets(line, sizeof(line), plist)) {
     printf("\n");
     //connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     valread = read( sock , buffer, 1024);
-
+    sleep(1);
     if(valread == 0) {
     printf("Server has gone away");
     printf("\n");
