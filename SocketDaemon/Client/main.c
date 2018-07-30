@@ -26,8 +26,8 @@ FILE *plist = fopen("/var/www/databaseSettings", "r");
 
 
     char clientsLoc[] = "/var/www/clients/";
-    int daemons = 2;
-    char * daemonPaths[2] = {"/var/www/clients/commitDaemon","/var/www/clients/sensorDaemon"};
+    int daemons = 3;
+    char * daemonPaths[3] = {"/var/www/clients/commitDaemon","/var/www/clients/sensorDaemon","/var/www/clients/commands"};
     //FILE * daemonStatusFiles[2] = {fopen("/var/www/clients/commitDaemon","r"),fopen("/var/www/clients/sensorDaemon","r")};
     char commandFilePath[] = "/var/www/clients/commands";
     FILE * commandFile;
@@ -113,8 +113,8 @@ while (fgets(line, sizeof(line), plist)) {
     }
 
     }
-    buffer[valread] = '\0';
-    if(strcmp(commandMonitor,buffer)==0) {
+    //buffer[valread] = '\0';
+    if(strcmp(commandMonitorPtr,buffer)==0) {
     } else{
     commandMonitorPtr = strcpy(commandMonitor,buffer);
     if(strcmp(buffer,"6") == 0) {
@@ -125,7 +125,6 @@ while (fgets(line, sizeof(line), plist)) {
     printf("Command code recieved: ");
     printf(buffer);
     printf("\n");
-
     commandFile = fopen(commandFilePath,"w");
     fprintf(commandFile,buffer);
     fflush(commandFile);
