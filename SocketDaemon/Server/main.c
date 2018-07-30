@@ -69,16 +69,16 @@ int main(int argc , char *argv[])
     int max_sd;
     struct sockaddr_in address;
 
-    char buffer[1025];  //data buffer of 1K
+    char buffer[1024];  //data buffer of 1K
 
 
     const char clientsLoc[] = "/var/www/clients/";
-    const int clientFiles = 4;
+    const int clientFiles = 3;
     const char commandFileName[] = "commands";
-    const char clientFileNames[3][1024] = {"commitDaemon","sensorDaemon","commands"};
+    const char clientFileNames[2][1024] = {"Sensor Daemon Status","SQL Daemon Status"};
     //set of socket descriptors
     fd_set readfds;
-    char  tables[30][255];
+    char  tables[30][1024];
     //a message
     char *message = "ECHO Daemon v1.0 \r\n";
 
@@ -230,33 +230,32 @@ int main(int argc , char *argv[])
                     }
                     }
                     struct stat st = {0};
-                    char commandPath[255] = "";
+                    char commandPath[1024] = "";
                     char * commandPathPt = strcpy(commandPath,tempLocPt);
                     commandPathPt = strcat(commandPath,commandFileName);
                     FILE * commandFile;
                     if(stat(tempLocPt,&st)==-1) {
                     printf("directory does not exist so we have to create it  \n");
-                    mkdir(tempLocPt,0700);
+                    mkdir(tempLocPt,0777);
+                    chmod(tempLocPt,0777);
                     for(int i = 0; i<clientFiles-1; i++) {
                         char tempFileLoc[1024] = "";
                         char * tempFileLocPt;
                         tempFileLocPt = strcpy(tempFileLoc,tempLoc);
                         tempFileLocPt = strcat(tempFileLoc,clientFileNames[i]);
                         FILE *temp = fopen(tempFileLocPt,"ab+");
-                        fprintf(temp,"100");
+                        chmod(tempFileLocPt,0777);
+                        fprintf(temp,"9");
                         fclose(temp);
                     }
                     commandFile = fopen(commandPathPt,"w+");
-                    fprintf(commandFile,"100");
+                    chmod(commandPathPt,0777);
+                    fprintf(commandFile,"9");
                     fflush(commandFile);
                     fclose(commandFile);
                     }
                     commandFile = fopen(commandPathPt,"r");
-
-
-
-
-                    char line[255] ="";
+                    char line[1024] ="";
                     fgets(line,sizeof(line),commandFile);
                     strcpy(line,fTrim(line));
                     fclose(commandFile);
@@ -300,10 +299,12 @@ int main(int argc , char *argv[])
                     printf("\n");
                     buffer[valread] = '\0';
                     char ** tempBuff = splitString(buffer);
-                    char tablePath[255] = "";
+                    char tablePath[1024] = "";
                     char * tablePathPt = strcpy(tablePath,tables[i]);
+
+
                     for(int i2 = 1; i2 < clientFiles; i2++) {
-                    char daemonPath[255] = "";
+                    char daemonPath[1024] = "";
                     char * daemonPathPt = strcpy(daemonPath,tablePath);
                     daemonPathPt = strcat(daemonPath,clientFileNames[i2-1]);
                     FILE * daemonFile = fopen(daemonPathPt, "w");
@@ -317,14 +318,14 @@ int main(int argc , char *argv[])
                     fclose(daemonFile);
                     }
 
-                    char commandPath[255] = "";
+                    char commandPath[1024] = "";
                     char * commandPathPt;
                     commandPathPt = strcat(commandPath,tables[i]);
                     commandPathPt = strcat(commandPath,commandFileName);
                     printf(commandPathPt);
                     printf("\n \n");
                     FILE * commandFile = fopen(commandPathPt,"r");
-                    char line[255] ="";
+                    char line[1024] ="";
                     fgets(line,sizeof(line),commandFile);
                     strcpy(line,fTrim(line));
                     fclose(commandFile);
