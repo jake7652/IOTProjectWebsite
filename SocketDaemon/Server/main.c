@@ -16,7 +16,7 @@
 #define TRUE   1
 #define FALSE  0
 #define PORT 8080
-
+#define BUF_LEN 2048
 
 char ** splitString(str) {
 
@@ -69,16 +69,13 @@ int main(int argc , char *argv[])
     int max_sd;
     struct sockaddr_in address;
 
-    char buffer[1024];  //data buffer of 1K
-
-
     const char clientsLoc[] = "/var/www/clients/";
     const int clientFiles = 3;
     const char commandFileName[] = "commands";
-    const char clientFileNames[2][1024] = {"Sensor Daemon Status","SQL Daemon Status"};
+    const char clientFileNames[2][BUF_LEN] = {"Sensor Daemon Status","SQL Daemon Status"};
     //set of socket descriptors
     fd_set readfds;
-    char  tables[30][1024];
+    char  tables[30][BUF_LEN];
     //a message
     char *message = "ECHO Daemon v1.0 \r\n";
 
@@ -119,7 +116,7 @@ int main(int argc , char *argv[])
     printf("Listener on port %d \n", PORT);
 
     //try to specify maximum of 3 pending connections for the master socket
-    if (listen(master_socket, 3) < 0)
+    if (listen(master_socket, 30) < 0)
     {
         perror("listen");
         exit(EXIT_FAILURE);
@@ -190,8 +187,8 @@ int main(int argc , char *argv[])
                     break;
                 }
             }
-
-            valread = read( sd , buffer, 1024);
+            char buffer[BUF_LEN];  //data buffer of 1K
+            valread = read( sd , buffer, BUF_LEN);
 
             if (valread == 0)
                 {
@@ -211,7 +208,7 @@ int main(int argc , char *argv[])
                 else
                 {
 
-                    char tempLoc[1024] = "";
+                    char tempLoc[BUF_LEN] = "";
                     char * tempLocPt;
                     tempLocPt = strcpy(tempLoc,clientsLoc);
 
@@ -230,7 +227,7 @@ int main(int argc , char *argv[])
                     }
                     }
                     struct stat st = {0};
-                    char commandPath[1024] = "";
+                    char commandPath[BUF_LEN] = "";
                     char * commandPathPt = strcpy(commandPath,tempLocPt);
                     commandPathPt = strcat(commandPath,commandFileName);
                     FILE * commandFile;
@@ -239,7 +236,7 @@ int main(int argc , char *argv[])
                     mkdir(tempLocPt,0777);
                     chmod(tempLocPt,0777);
                     for(int i = 0; i<clientFiles-1; i++) {
-                        char tempFileLoc[1024] = "";
+                        char tempFileLoc[BUF_LEN] = "";
                         char * tempFileLocPt;
                         tempFileLocPt = strcpy(tempFileLoc,tempLoc);
                         tempFileLocPt = strcat(tempFileLoc,clientFileNames[i]);
@@ -255,7 +252,7 @@ int main(int argc , char *argv[])
                     fclose(commandFile);
                     }
                     commandFile = fopen(commandPathPt,"r");
-                    char line[1024] ="";
+                    char line[BUF_LEN] ="";
                     fgets(line,sizeof(line),commandFile);
                     strcpy(line,fTrim(line));
                     fclose(commandFile);
@@ -267,15 +264,15 @@ int main(int argc , char *argv[])
         //else its some IO operation on some other socket
         for (i = 0; i < max_clients; i++)
         {
-            //printf("\n reeeee \n");
+            char buffer[BUF_LEN];
             sd = client_socket[i];
 
             if (FD_ISSET( sd , &readfds))
             {
-                valread = read( sd , buffer, 1024);
+                valread = read( sd , buffer, BUF_LEN);
                 //Check if it was for closing , and also read the
                 //incoming message
-                if (valread == 0)
+                if (valread <= 0)
                 {
                     //Somebody disconnected , get his details and print
                     getpeername(sd , (struct sockaddr*)&address , \
@@ -297,14 +294,14 @@ int main(int argc , char *argv[])
                     printf("Information recieved: ");
                     printf(buffer);
                     printf("\n");
-                    buffer[valread] = '\0';
+                    buffer[valread+1] = '\0';
                     char ** tempBuff = splitString(buffer);
-                    char tablePath[1024] = "";
+                    char tablePath[BUF_LEN] = "";
                     char * tablePathPt = strcpy(tablePath,tables[i]);
 
 
                     for(int i2 = 1; i2 < clientFiles; i2++) {
-                    char daemonPath[1024] = "";
+                    char daemonPath[BUF_LEN];
                     char * daemonPathPt = strcpy(daemonPath,tablePath);
                     daemonPathPt = strcat(daemonPath,clientFileNames[i2-1]);
                     FILE * daemonFile = fopen(daemonPathPt, "w");
@@ -318,14 +315,14 @@ int main(int argc , char *argv[])
                     fclose(daemonFile);
                     }
 
-                    char commandPath[1024] = "";
+                    char commandPath[BUF_LEN] = "";
                     char * commandPathPt;
                     commandPathPt = strcat(commandPath,tables[i]);
                     commandPathPt = strcat(commandPath,commandFileName);
                     printf(commandPathPt);
                     printf("\n \n");
                     FILE * commandFile = fopen(commandPathPt,"r");
-                    char line[1024] ="";
+                    char line[BUF_LEN] ="";
                     fgets(line,sizeof(line),commandFile);
                     strcpy(line,fTrim(line));
                     fclose(commandFile);
@@ -333,7 +330,6 @@ int main(int argc , char *argv[])
                     free(tempBuff);
                 }
             }
-
         }
     }
 
