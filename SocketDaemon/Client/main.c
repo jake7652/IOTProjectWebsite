@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #define PORT 8080
 #define BUF_LEN 2048
 
@@ -14,6 +16,41 @@ char * fTrim (char s[]) {
   if ((i > 0) && (s[i] == '\n'))
     s[i] = '\0';
   return s;
+}
+
+static int exec_prog(const char **argv)
+{
+    pid_t   my_pid;
+    int     status, timeout /* unused ifdef WAIT_FOR_COMPLETION */;
+
+    if (0 == (my_pid = fork())) {
+            if (-1 == execve(argv[0], (char **)argv , NULL)) {
+                    perror("child process execve failed [%m]");
+                    return -1;
+            }
+    }
+
+#ifdef WAIT_FOR_COMPLETION
+    timeout = 1000;
+
+    while (0 == waitpid(my_pid , &status , WNOHANG)) {
+            if ( --timeout < 0 ) {
+                    perror("timeout");
+                    return -1;
+            }
+            sleep(1);
+    }
+
+    printf("%s WEXITSTATUS %d WIFEXITED %d [status %d]\n",
+            argv[0], WEXITSTATUS(status), WIFEXITED(status), status);
+
+    if (1 != WIFEXITED(status) || 0 != WEXITSTATUS(status)) {
+            perror("%s failed, halt system");
+            return -1;
+    }
+
+#endif
+    return 0;
 }
 
 int main(int argc, char const *argv[])
@@ -83,7 +120,7 @@ while (fgets(line, sizeof(line), plist)) {
     }
     lineTempPt = strcat(lineTemp, "END");
 //    printf(hello);
-    send(sock , lineTempPt , strlen(lineTempPt) , 1 );
+    send(sock , lineTempPt , strlen(lineTempPt) , 0 );
     printf("Information sent: ");
     printf(lineTempPt);
     printf("\n");
@@ -120,9 +157,16 @@ while (fgets(line, sizeof(line), plist)) {
     strcpy(commandMonitor,"");
     strcpy(commandMonitor,buffer);
     if(strcmp(buffer,"6") == 0) {
-        system("x-terminal-emulator -e /var/www/daemons/SensorDaemon &");
+    /* Contents of one of the scripts for reference
+    #!/bin/bash
+    DISPLAY=:0 x-terminal-emulator -e /var/www/daemons/SQLDaemon & disown
+    exit 0
+*/
+        char * arguments[255] = {"/var/www/daemons/sensor.sh"};
+        exec_prog(arguments);
     } else if(strcmp(buffer,"7") == 0){
-        system("x-terminal-emulator -e /var/www/daemons/SQLDaemon &");
+        char * arguments[255] = {"/var/www/daemons/SQL.sh"};
+        exec_prog(arguments);
     }
     printf("Command code recieved: ");
     printf(buffer);
