@@ -139,17 +139,16 @@ float:left;
 <form>
 <fieldset> 
 <legend>Select Platforms to graph</legend>
-<div class="tables">    <!-- container for the checkboxes --> 
+<span>
+<span id="tables">    <!-- container for the checkboxes --> 
     <!-- Bunch of spans for the checkboxes so that they are inline of each other -->
-    <span>
-    <input name="table" type="checkbox" value="DataTable"/>
-    <label for="table">Air Temperature</label>
-    </span> 
-    
-
-    <!-- Button following the checkboxes calling the checkbox function when it is pressed -->
-    <input type="button" onclick="getCheckedCheckboxesFor('table');" value="Graph with tables" />
-</div> <!-- End checkbox container div -->
+   
+   
+   
+</span> <!-- End checkbox container div -->
+<!-- Button following the checkboxes calling the checkbox function when it is pressed -->
+<input type="button" onclick="tableSelectHandler('table');" value="Graph with tables" />
+</span>
 </fieldset>
 </form>
 	
@@ -767,16 +766,47 @@ window.scrollTo(0,0);
 	
 function populateTableOptions(tables) {
 for(var i = 0; i < tables.length; i++){
-alert(tables[i]);	
+var spTemp = document.createElement("span");
+var inTemp = document.createElement("INPUT");
+var lbTemp = document.createElement("LABEL");
+inTemp.setAttribute("type","checkbox");
+inTemp.setAttribute("name","table");
+inTemp.setAttribute("value",tables[i]+"");
+lbTemp.for = "table";
+lbTemp.innerHTML = tables[i];
+spTemp.appendChild(inTemp);
+spTemp.appendChild(lbTemp);
+document.getElementById("tables").appendChild(spTemp);
+
 }
 	
 }
 tableNamesQuery(populateTableOptions);
 	
-    //<span>
-    //<input name="table" type="checkbox" value="DataTable"/>
-    //<label for="table">Air Temperature</label>
-    //</span> 
+function tableSelectHandler(checkboxName) {
+ //abort all ajax calls
+alert('aaaaaaaaa');
+//    for(var i = 0; i < ajaxCalls.length; i++) {
+//	ajaxCalls[i].abort();
+ //   }
+ //   ajaxCalls = [];
+    //stop the updater loop
+  //  clearInterval(interval);
+    //get all of the checkboxes and put them in a array
+    var checkboxes = document.querySelectorAll('input[name="' + checkboxName + '"]:checked'), values = [];
+    Array.prototype.forEach.call(checkboxes, function(el) {
+        values.push(el.value);
+	alert(el.value);
+    });
+    alert(values);
+    //draw a plot with the selected checkboxes
+    drawPlots(values,"plot",[],true);
+    //return the array of values. Mainly for use for debugging with a alert of the return of this function
+    return values;
+
+
+}
+
 
 //end slider script
 </script>
