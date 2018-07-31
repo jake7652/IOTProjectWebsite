@@ -119,12 +119,13 @@ float: left;
   <tr>
     <th>Sensor Platform(by sql table)</th>
     <th>Last update</th>
-    <th>SQL Update Daemon Status</th>
     <th>Sensor Daemon Status</th>
-    <th>Start SQL Update Daemon</th>
-    <th>Stop SQL Update Daemon</th>
+    <th>SQL Update Daemon Status</th>
     <th>Start Sensor Daemon</th>
     <th>Stop Sensor Daemon</th>
+    <th>Start SQL Update Daemon</th>
+    <th>Stop SQL Update Daemon</th>
+
   </tr>
 </thead>
 <tbody>
@@ -298,10 +299,10 @@ tables[i],
 sqlToTable(lastTimes[tables[i]]),
 daemonStatus[tables[i]][0],
 daemonStatus[tables[i]][1],
-"<button class=graphbutton value ="+ tables[i] + ",7>Start</button>",
-"<button class=graphbutton value =" +tables[i]+ ",0>Stop</button>",
 "<button class=graphbutton value =" +tables[i] +",6>Start</button>",
 "<button class=graphbutton value =" + tables[i] +",3>Stop</button>",
+"<button class=graphbutton value ="+ tables[i] + ",7>Start</button>",
+"<button class=graphbutton value =" +tables[i]+ ",0>Stop</button>",
 ]
 ).draw(true);
 }
