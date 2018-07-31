@@ -69,6 +69,8 @@ while (fgets(line, sizeof(line), plist)) {
     }
     char commandMonitor[BUF_LEN];
     char * commandMonitorPtr =strcpy(commandMonitor,"");
+    sleep(10);
+    close(sock);
     while(1) {
 
     char lineTemp[BUF_LEN] = "";
@@ -89,18 +91,19 @@ while (fgets(line, sizeof(line), plist)) {
     //connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     valread = read( sock , buffer, BUF_LEN);
     sleep(1);
-    if(valread == 0) {
+    if(valread <= 0) {
     printf("Server has gone away");
     printf("\n");
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    close(sock);
+    while ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        printf("\n Socket creation error \n");
+       printf("\n Socket creation error \n");
         sleep(1);
     }
      // Convert IPv4 and IPv6 addresses from text to binary form
     while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
     {
-        printf("\nInvalid address/ Address not supported \n");
+       printf("\nInvalid address/ Address not supported \n");
         sleep(1);
     }
 
