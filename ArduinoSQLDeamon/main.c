@@ -57,11 +57,14 @@ char * fTrim (char s[]) {
 
 main()
 {
-    char commandsFilePath[] = "/var/www/clients/commands";
-    FILE * commandsFile = fopen(commandsFilePath,"r");
-    char stopCode[255] = "3";
+    const char * commandsFilePath = "/var/www/clients/commands";
+    FILE * commandsFile = fopen(commandsFilePath,"w");
+    fprintf(commandsFile, "4");
+    fclose(commandsFile);
+    commandsFile = fopen(commandsFilePath,"r");
+    const  char *stopCode = "3";
 
-    char statusFilePath[] = "/var/www/clients/sensorDaemon";
+    const char * statusFilePath = "/var/www/clients/sensorDaemon";
     FILE * statusFile = fopen(statusFilePath,"w");
 
     fprintf(statusFile, "STARTING");
@@ -186,6 +189,13 @@ fflush(commandsFile);
 fclose(commandsFile);
 strcpy(line,fTrim(line));
 if(strcmp(line,stopCode)==0) {
+    commandsFile = fopen(commandsFilePath,"w");
+    fprintf(commandsFile, "5");
+    fclose(commandsFile);
+    statusFile = fopen(statusFilePath,"w");
+    fprintf(statusFile, "KILLED");
+    fflush(statusFile);
+    fclose(statusFile);
 
 exit(0);
 
