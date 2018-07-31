@@ -306,12 +306,17 @@ function drawPlots(fields,plotName,domain,realtime) {
 
 $.LoadingOverlay("show");
 currentFields = fields;
-var query;
-
-
-
-
+var query = {};
+query.data = new Array();
+query.time = new Array();
+	
 function queryCallback(result) {
+	query.data[query.data.length] = result.data;
+	query.time[query.time.length] = result.time;	
+}
+
+
+function drawGraphs(result) {
 
 
 
