@@ -69,8 +69,6 @@ while (fgets(line, sizeof(line), plist)) {
     }
     char commandMonitor[BUF_LEN];
     char * commandMonitorPtr =strcpy(commandMonitor,"");
-    sleep(10);
-    close(sock);
     while(1) {
 
     char lineTemp[BUF_LEN] = "";
