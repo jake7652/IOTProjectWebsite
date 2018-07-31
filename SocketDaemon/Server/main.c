@@ -10,9 +10,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
-#include <sys/types.h>
+//#include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+//#include <unistd.h>
+#include <mysql.h>
 #define TRUE   1
 #define FALSE  0
 #define PORT 8080
@@ -62,6 +63,31 @@ char * fTrim (char s[]) {
 int main(int argc , char *argv[])
 {
 
+
+
+    //connection for the remote database
+    MYSQL con;
+    mysql_init(&con);
+    mysql_options(&con,MYSQL_OPT_COMPRESS,1);
+
+    //char arrays for storing the contents of the databaseSettings
+   char line [255];
+   char file [10][255];
+   char table[] = "";
+
+//File to store the settings for the database
+FILE *plist = fopen("/var/www/databaseSettings", "r");
+int iter = 0;
+//go through each line of the settings file
+while (fgets(line, sizeof(line), plist)) {
+    strcpy(file[iter], fTrim(line));
+    iter++;
+}
+//create the connection to the remote database
+    if (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
+ 		{
+      		exit(0);
+  		}
 
     int opt = TRUE;
     int master_socket , addrlen , new_socket , client_socket[30] ,
@@ -215,7 +241,26 @@ int main(int argc , char *argv[])
                     //set the string terminating NULL byte on the end
                     //of the data read
                     buffer[valread] = '\0';
+                    char tempBuff[BUF_LEN];
                     char ** result = splitString(buffer);
+                    //char * tempBuffPt = strcpy(tempBuff,buffer);
+
+
+                    char checkQuery[255];
+                    //pointer to the check query string so that i can print it out without seg faulting
+                    char *checkQueryPtr;
+                    //build the check query string
+                    checkQueryPtr = strcpy(checkQuery,"SHOW TABLES LIKE '");
+                    checkQueryPtr = strcat(checkQuery,buffer);
+                    checkQueryPtr = strcat(checkQuery, "';");
+
+                    //the result variable for the table check
+                    MYSQL_RES *confresCheck;
+                    //query to check if table exists
+                    mysql_query(&con,checkQueryPtr);
+                    //store the result of the table present check in the result variable
+                    confresCheck = mysql_store_result(&con);
+                    if(mysql_num_rows(confresCheck) != 0) {
                     strcpy(buffer,result[0]);
                     free(result);
                     tempLocPt = strcat(tempLoc, buffer);
@@ -257,6 +302,13 @@ int main(int argc , char *argv[])
                     strcpy(line,fTrim(line));
                     fclose(commandFile);
                     send(sd, line,strlen(line),0);
+                    } else {
+                    free(result);
+                    close(sd);
+                    client_socket[newIndex] = 0;
+                    strcpy(tables[newIndex],"");
+                    }
+                mysql_free_result(confresCheck);
                 }
 
         }
