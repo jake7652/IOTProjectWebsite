@@ -1,33 +1,14 @@
-
-//#include <sys/types.h>
-//#include <sys/stat.h>
-//#include <fcntl.h>
-//#include <termios.h>
-//#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <termios.h>
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <signal.h>
-#include <assert.h>
-//#include <stdlib.h>
-
-
-
 
 //MYSQL
-//#include <my_global.h>
+#include <my_global.h>
 #include <mysql.h>
 
-//Modem Parameters
-#define BAUDRATE B9600
-#define MODEMDEVICE "/dev/ttyUSB0" /* Note rfcomm0 is Bluetooth SSP */
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
 
-typedef int bool;
-#define true 1
-#define false 0
 
 volatile int STOP=FALSE;
 
@@ -49,15 +30,19 @@ char status[1023] = "";
 char *statusPt;
 
 
-char shouldRun[255] = "0";
-char commandsFile[] = "/var/www/clients/commands";
-FILE *continueRunning = fopen(commandsFile, "r");
+    const char * commandsFilePath = "/var/www/clients/commands";
+    FILE * commandsFile = fopen(commandsFilePath,"w");
+    fprintf(commandsFile, "1");
+    fclose(commandsFile);
+    commandsFile = fopen(commandsFilePath,"r");
+    const char * stopCode = "0";
 
-char statusFilePath[] = "/var/www/clients/commitDaemon";
-FILE * statusFile = fopen(statusFilePath,"w");
-fprintf(statusFile,"STARTING");
-fflush(statusFile);
-fclose(statusFile);
+    const char * statusFilePath = "/var/www/clients/commitDaemon";
+    FILE * statusFile = fopen(statusFilePath,"w");
+
+    fprintf(statusFile, "STARTING");
+    fflush(statusFile);
+    fclose(statusFile);
 //system("/usr/bin/x-terminal-emulator -e /var/www/Daemons/UpdateDaemon &");
 
 //enum of all fields in the database
@@ -123,16 +108,16 @@ fclose(statusFile);
 
 unsigned long thing = mysql_thread_id(&con);
 
-int n = snprintf(NULL,0,"%lu",mysql_thread_id(&con));
-assert(n>0);
-char buffer[n+1];
-int c = snprintf(buffer,n+1,"%lu",mysql_thread_id(&con));
-assert(buffer[n]=='\0');
-assert(c==n);
-printf(buffer);
-printf("\n");
-printf(mysql_stat(&con));
-printf("\n");
+//int n = snprintf(NULL,0,"%lu",mysql_thread_id(&con));
+//assert(n>0);
+//char buffer[n+1];
+//int c = snprintf(buffer,n+1,"%lu",mysql_thread_id(&con));
+//assert(buffer[n]=='\0');
+//assert(c==n);
+//printf(buffer);
+//printf("\n");
+//printf(mysql_stat(&con));
+//printf("\n");
 //char array to store the query that checks to see if the table we want exists
 char checkQuery[255];
 //pointer to the check query string so that i can print it out without seg faulting
@@ -287,36 +272,43 @@ char *command;
 char inQueryTemp[1500000]="";
 
 //flag to tell whether the connection was interrupted
-bool connectionInterrupted = false;
+int connectionInterrupted = 0;
 
-bool newData = false; //is there new data that needs to be inserted into the remote database?
+int newData = 0; //is there new data that needs to be inserted into the remote database?
 
 //basically infinite loop
 while(!STOP) {
-
-continueRunning = fopen(commandsFile, "r");
-fgets(line, sizeof(line), continueRunning);
-fflush(continueRunning);
-fclose(continueRunning);
-strcpy(shouldRun,fTrim(line));
+strcpy(line,"");
+commandsFile = fopen(commandsFilePath, "r");
+fgets(line, sizeof(line), commandsFile);
+fflush(commandsFile);
+fclose(commandsFile);
+strcpy(line,fTrim(line));
+statusFile = fopen(statusFilePath,"w");
+fprintf(statusFile,"RUNNING_UPDATES");
+fflush(statusFile);
+fclose(statusFile);
+//printf("\n");
+//printf(line);
+//printf("\n");
 //if the first line of this file is 0, then this daemon has been signaled to be killed but is still running, while 1 is currently running, and 2 is dead and not running, and 3 is signaled to be started
-if(strcmp(shouldRun,"0") == 0) {
+if(strcmp(line,stopCode) == 0) {
 
-continueRunning = fopen(commandsFile, "w");
+commandsFile = fopen(commandsFile, "w");
 statusFile = fopen(statusFilePath,"w");
 fprintf(statusFile,"KILLED");
 fflush(statusFile);
 fclose(statusFile);
 //signal that the daemon has been killed
-fprintf(continueRunning,"2");
-fflush(continueRunning);
-fclose(continueRunning);
-exit(0);
+fprintf(commandsFile,"2");
+//fflush(continueRunning);
+fclose(commandsFile);
+exit(1);
 }
 
 //reset the connection interrupted and new data variables at the start of the loop
-connectionInterrupted = false;
-newData = false;
+connectionInterrupted = 0;
+newData = 0;
 
 //start building the start of the insert query
 command = strcpy(inQueryTemp,"");
@@ -335,7 +327,7 @@ if(strcmp(row[Time],lastTime) > 0) {
 
 
 //if there is a newer timestamp in the local database vs the remote database, then we have new data to insert
-newData = true;
+newData = 1;
 
 //each inserted row is separated by a comma, but the first row in the query does not have a comma
 if(rowCounter > 0) {
@@ -388,7 +380,7 @@ command = strcat(inQueryTemp, ")");
 if(strlen(inQueryTemp) >= 1400000) {
 //reset the row counter to 0 and newData to false because we are working on building a new query
 rowCounter = 0;
-newData = false;
+newData = 0;
 
 //append the ending semicolon onto the query
 command = strcat(inQueryTemp, ";");
@@ -401,7 +393,7 @@ printf("\n");
 
 //send the query to the the server and wait until the server is ready to recieve the query
 while(mysql_query(&con, command)) {
-connectionInterrupted = true;
+connectionInterrupted = 1;
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
 fprintf(stderr, "%s\n", mysql_error(&con));
 statusFile = fopen(statusFilePath,"w");
@@ -440,13 +432,13 @@ command = strcat(inQueryTemp, ";");
 mysql_free_result(confres);
 
 //if we have new rows to insert, then insert those, otherwise we don't really do anything
-if(newData==true) {
+if(newData==1) {
 printf("\n");
 printf(command);
 printf("\n");
 //query the server to insert the rows with same fault tolerance in case we lose connection
 while(mysql_query(&con, command)) {
-connectionInterrupted = true;
+connectionInterrupted = 1;
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
 fprintf(stderr, "%s\n", mysql_error(&con));
 statusFile = fopen(statusFilePath,"w");
@@ -455,7 +447,6 @@ char *tempStatusPt = strcat(tempStatus,mysql_error(&con));
 fprintf(statusFile,tempStatusPt);
 fflush(statusFile);
 fclose(statusFile);
-exit(0);
 mysql_close(&con);
 mysql_close(localCon);
 mysql_init(&con);
@@ -475,7 +466,7 @@ char runningQuery[1023] = "SELECT * FROM DataTable WHERE RTCDataTime > ";
 strcat(runningQuery,lastTime);
 
 //query and store for the next last 90 rows of the local database
-if(connectionInterrupted == false ) {
+if(connectionInterrupted == 0 ) {
 if(mysql_query(localCon,runningQuery)) {
 
 //if we fail to query the first time we most likely lost connection, so change the query to selecting all lines(since downtime varies) and attempt to reconnect
