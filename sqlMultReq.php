@@ -31,7 +31,7 @@ define('DB_NAME', $contents[3]);
 
 $fields = array("RTCTemperature");
 $lines = 0;
-$table = "DataTable";
+$table = "DataTable2";
 $min_time = "0";
 $max_time = "99999999999999";
 if(isset($_POST['arguments'])) {
@@ -87,7 +87,7 @@ for($i = 0; $i < $num_fields;$i++) {
 $query[$i] = sprintf("SELECT " . $fields[$i] . " FROM " . $table . "");
 $result[$i] = $mysqli->query($query[$i]);
 }
-$time_query = sprintf("SELECT RTCDataTime FROM DataTable");
+$time_query = sprintf("SELECT RTCDataTime FROM " . $table . "");
 
 }
 
