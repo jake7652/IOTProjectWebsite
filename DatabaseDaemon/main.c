@@ -194,7 +194,7 @@ strcat(lastQuery, " ORDER BY RTCDataTime DESC LIMIT 1) sub ORDER BY RTCDataTime 
 //running row from database from the results of the query
 char ** row;
 //the last time in the remote database
-char lastTime[255] = "";
+char lastTime[255] = "0";
 //the result variable for the last time in the remote database
 MYSQL_RES *confresTime;
 
@@ -247,7 +247,7 @@ int numfields;
 //query all rows with time keys not in the remote db
 char catchupQuery[1023] = "SELECT * FROM DataTable WHERE RTCDataTime > ";
 strcat(catchupQuery,lastTime);
-
+strcat(catchupQuery,";");
 printf("\n");
 printf(catchupQuery);
 printf("\n");
@@ -324,7 +324,6 @@ while(row = mysql_fetch_row(confres)) {
 
 //if we are looking at a row with a newer timestamp than the last one, then build the insert query
 if(strcmp(row[Time],lastTime) > 0) {
-
 
 //if there is a newer timestamp in the local database vs the remote database, then we have new data to insert
 newData = 1;
@@ -463,8 +462,12 @@ sleep(1);
 sleep(1);
 
 char runningQuery[1023] = "SELECT * FROM DataTable WHERE RTCDataTime > ";
+if(lastTime!=NULL) {
 strcat(runningQuery,lastTime);
+} else {
 
+
+}
 //query and store for the next last 90 rows of the local database
 if(connectionInterrupted == 0 ) {
 if(mysql_query(localCon,runningQuery)) {
