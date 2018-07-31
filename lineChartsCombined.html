@@ -222,7 +222,7 @@ Humidity: [0,100],
 HumidityHeatIndex: [0,120],
 HumidityTemperature: [0,120],
 Transducer: [0,4000],
-PressurePressure: [8.859,32.483], // conversion of the 300-1100 hPa range that the datasheet lists for the sensor
+PressurePressure: [26,32.483], // conversion of the 300-1100 hPa range that the datasheet lists for the sensor
 PressureAlititude: [-500, 2000], //can go up to 9000 but i don't think we'll be going that high
 Temperature1: [0,120],
 };
@@ -488,7 +488,7 @@ layout[xAx]['range'] = domain; //set the min and max x values for all subplots b
 layout[xAx]['anchor'] = y_axis.concat((i+1).toString()); //set the x anchor of the subplot
 layout[yAx]['anchor'] = x_axis.concat((i+1).toString()); //set the y anchor of the subplot
 layout[yAx]['range'] = MIN_MAX[fields[i]]; //set the min and max values of the y axis of the subplot
-layout[xAx]['autorange'] = true; //by default the subplot does not autoscale
+//layout[xAx]['autorange'] = true; //by default the subplot does not autoscale
 //layout[yAx]['autorange'] = false; //by default the subplot does not autoscale
 layout[yAx]['title'] = LABELS[fields[i]]; //set the label of the y axis 
 layout[xAx]['title'] = "Date"; //set the label of the x axis
