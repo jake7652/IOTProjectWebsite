@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <arpa/inet.h>
 #define PORT 8080
 #define BUF_LEN 2048
 
@@ -130,6 +131,7 @@ while (fgets(line, sizeof(line), plist)) {
     fprintf(commandFile,buffer);
     fflush(commandFile);
     fclose(commandFile);
+    sleep(10);
     }
     strcpy(buffer,"");
     sleep(1);
