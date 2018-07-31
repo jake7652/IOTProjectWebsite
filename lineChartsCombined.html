@@ -138,8 +138,8 @@ float:left;
 <!-- checkboxes to graph other sensors container -->
 <form>
 <fieldset> 
-<legend>Select measurements to graph</legend>
-<div class="dataTwo">    <!-- container for the checkboxes --> 
+<legend>Select Platforms to graph</legend>
+<div class="tables">    <!-- container for the checkboxes --> 
     <!-- Bunch of spans for the checkboxes so that they are inline of each other -->
     <span>
     <input name="table" type="checkbox" value="DataTable"/>
@@ -764,6 +764,19 @@ window.scrollTo(0,0);
     drawPlots(currentFields,"plot",[sliderToPlot(selectedMin),sliderToPlot(selectedMax)],false);
 
 }
+	
+function populateTableOptions(tables) {
+for(var i = 0; i < tables.length; i++){
+alert(tables[i]);	
+}
+	
+}
+tableNamesQuery(populateTableOptions);
+	
+    //<span>
+    //<input name="table" type="checkbox" value="DataTable"/>
+    //<label for="table">Air Temperature</label>
+    //</span> 
 
 //end slider script
 </script>
