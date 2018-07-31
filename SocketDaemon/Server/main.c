@@ -190,7 +190,7 @@ int main(int argc , char *argv[])
             char buffer[BUF_LEN];  //data buffer of 1K
             valread = read( sd , buffer, BUF_LEN);
 
-            if (valread == 0)
+            if (valread <= 0)
                 {
                     //Somebody disconnected , get his details and print
                     getpeername(sd , (struct sockaddr*)&address , \
