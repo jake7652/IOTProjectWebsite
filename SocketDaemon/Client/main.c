@@ -5,7 +5,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #define PORT 8080
-
+#define BUF_LEN 2048
 
 //trims off the newlines characters from the fgets read
 char * fTrim (char s[]) {
@@ -18,9 +18,9 @@ char * fTrim (char s[]) {
 int main(int argc, char const *argv[])
 {
 
-char line [1024] = "";
-char file [10][1024];
-char table[1024] = "";
+char line [BUF_LEN] = "";
+char file [10][BUF_LEN];
+char table[BUF_LEN] = "";
 //File to store the settings for the database
 FILE *plist = fopen("/var/www/databaseSettings", "r");
 
@@ -43,7 +43,7 @@ while (fgets(line, sizeof(line), plist)) {
     int sock = 0, valread;
     struct sockaddr_in serv_addr;
     char *hello = file[4];
-    char buffer[1024] = {0};
+    char buffer[BUF_LEN] = {0};
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("\n Socket creation error \n");
@@ -67,28 +67,27 @@ while (fgets(line, sizeof(line), plist)) {
         printf("\nConnection Failed retry in one second \n");
 
     }
-    char commandMonitor[1024];
+    char commandMonitor[BUF_LEN];
     char * commandMonitorPtr =strcpy(commandMonitor,"");
     while(1) {
 
-    char lineTemp[1024] = "";
+    char lineTemp[BUF_LEN] = "";
     char *lineTempPt = strcpy(lineTemp,hello);
     lineTempPt = strcat(lineTemp, ",");
     for(int i = 0; i < daemons; i++ ){
     FILE * temp = fopen(daemonPaths[i],"r");
     fgets(line, sizeof(line),temp);
     lineTempPt = strcat(lineTemp,line);
-    if(i<daemons-1){
     lineTempPt = strcat(lineTemp, ",");
     }
-    }
+    lineTempPt = strcat(lineTemp, "END");
 //    printf(hello);
-    send(sock , lineTempPt , strlen(lineTempPt) , 0 );
+    send(sock , lineTempPt , strlen(lineTempPt) , 1 );
     printf("Information sent: ");
     printf(lineTempPt);
     printf("\n");
     //connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-    valread = read( sock , buffer, 1024);
+    valread = read( sock , buffer, BUF_LEN);
     sleep(1);
     if(valread == 0) {
     printf("Server has gone away");
