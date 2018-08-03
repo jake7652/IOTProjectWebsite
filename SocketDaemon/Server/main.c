@@ -95,6 +95,8 @@ int main(int argc , char *argv[])
           max_clients = 30 , activity , valread , sd;
     int max_sd;
     struct sockaddr_in address;
+
+
     //directory of the client files for the daemons
     const char clientsLoc[] = "/var/www/clients/";
     //number of files associated with the client daemons and commands
@@ -154,7 +156,7 @@ int main(int argc , char *argv[])
     //accept the incoming connection
     addrlen = sizeof(address);
     puts("Waiting for connections ...");
-
+    int loops = 0;
     while(TRUE)
     {
         //clear the socket set
@@ -179,10 +181,17 @@ int main(int argc , char *argv[])
                 max_sd = sd;
         }
 
+        struct timeval tout;
+        tout.tv_sec = 5;
+        tout.tv_usec = 0;
+
         //wait for an activity on one of the sockets , timeout is NULL ,
         //so wait indefinitely
-        activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL);
-
+        printf("\n");
+        activity = select( max_sd + 1 , &readfds , NULL , NULL , &tout);
+        printf("Loops: %d", loops);
+        loops++;
+        printf("\n");
         if ((activity < 0) && (errno!=EINTR))
         {
             printf("select error");
@@ -249,12 +258,8 @@ int main(int argc , char *argv[])
 
                     //set the string terminating NULL byte on the end
                     //of the data read
-                    printf("\n break 2 \n");
                     buffer[valread] = '\0';
                     char tempBuff[BUF_LEN];
-                     printf("\n break 2 \n");
-                    //char * tempBuffPt = strcpy(tempBuff,buffer);
-
 
                     char checkQuery[255];
                     //pointer to the check query string so that i can print it out without seg faulting
