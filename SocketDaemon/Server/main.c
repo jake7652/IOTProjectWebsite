@@ -19,6 +19,8 @@
 #define PORT 8080
 #define BUF_LEN 2048
 
+//function to split a string along a delimeter
+//you will need to call free() on the result of this function or else a mem leak will occur
 char ** splitString(str) {
 
      int i;
@@ -64,8 +66,7 @@ int main(int argc , char *argv[])
 {
 
 
-
-    //connection for the remote database
+    //connection for the remote database. Used to help verify if a incoming connection is valid
     MYSQL con;
     mysql_init(&con);
     mysql_options(&con,MYSQL_OPT_COMPRESS,1);
@@ -75,15 +76,15 @@ int main(int argc , char *argv[])
    char file [10][255];
    char table[] = "";
 
-//File to store the settings for the database
-FILE *plist = fopen("/var/www/databaseSettings", "r");
-int iter = 0;
-//go through each line of the settings file
-while (fgets(line, sizeof(line), plist)) {
-    strcpy(file[iter], fTrim(line));
-    iter++;
-}
-//create the connection to the remote database
+    //File that stores the settings for the database
+    FILE *plist = fopen("/var/www/databaseSettings", "r");
+    int iter = 0;
+    //go through each line of the settings file
+    while (fgets(line, sizeof(line), plist)) {
+        strcpy(file[iter], fTrim(line));
+        iter++;
+    }
+    //create the connection to the remote database
     if (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
  		{
       		exit(0);
@@ -94,8 +95,9 @@ while (fgets(line, sizeof(line), plist)) {
           max_clients = 30 , activity , valread , sd;
     int max_sd;
     struct sockaddr_in address;
-
+    //directory of the client files for the daemons
     const char clientsLoc[] = "/var/www/clients/";
+    //number of files associated with the client daemons and commands
     const int clientFiles = 3;
     const char commandFileName[] = "commands";
     const char clientFileNames[2][BUF_LEN] = {"Sensor Daemon Status","SQL Daemon Status"};
@@ -106,6 +108,7 @@ while (fgets(line, sizeof(line), plist)) {
     char *message = "ECHO Daemon v1.0 \r\n";
 
     //initialise all client_socket[] to 0 so not checked
+    //and blank out the table names
     for (int i = 0; i < max_clients; i++)
     {
         client_socket[i] = 0;
@@ -198,7 +201,7 @@ while (fgets(line, sizeof(line), plist)) {
 
             //inform user of socket number - used in send and receive commands
             printf("New connection , socket fd is %d , ip is : %s , port : %d \n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
-
+            //index of the new socket in the table names array and the socket descripter array
             int newIndex = -1;
             //add new socket to array of sockets
             for (int i = 0; i < max_clients; i++)
@@ -213,14 +216,15 @@ while (fgets(line, sizeof(line), plist)) {
                     break;
                 }
             }
-            char buffer[BUF_LEN];  //data buffer of 1K
-            printf("\n new connection break 1 \n ");
+            //buffer to read in whatever the client sends to us
+            char buffer[BUF_LEN];  //data buffer of 2K
+            //read in whatever the client is sending out
             valread = read( sd , buffer, BUF_LEN);
-            printf("\n new connection break 1 \n ");
-            char *breakBuf = strcat(buffer,"");
-            printf(breakBuf);
-            printf("\n");
-            if (valread <= 0)
+
+            //get all elements of the elements of the message that the client is sending out separated by commas
+            char ** result = splitString(buffer);
+            //if we weren't able to read or the first word is not "VALID" then disconnect this new client
+            if (valread <= 0 || strcmp(result[0],"VALID")!=0)
                 {
                     //Somebody disconnected , get his details and print
                     getpeername(sd , (struct sockaddr*)&address , \
@@ -232,12 +236,13 @@ while (fgets(line, sizeof(line), plist)) {
                     close( sd );
                     client_socket[newIndex] = 0;
                     strcpy(tables[newIndex],"");
+                    free(result);
                 }
 
                 //Echo back the message that came in
                 else
                 {
-
+                    //temp file location string for holding the client files dir and paths
                     char tempLoc[BUF_LEN] = "";
                     char * tempLocPt;
                     tempLocPt = strcpy(tempLoc,clientsLoc);
@@ -247,7 +252,6 @@ while (fgets(line, sizeof(line), plist)) {
                     printf("\n break 2 \n");
                     buffer[valread] = '\0';
                     char tempBuff[BUF_LEN];
-                    char ** result = splitString(buffer);
                      printf("\n break 2 \n");
                     //char * tempBuffPt = strcpy(tempBuff,buffer);
 
@@ -256,66 +260,95 @@ while (fgets(line, sizeof(line), plist)) {
                     //pointer to the check query string so that i can print it out without seg faulting
                     char *checkQueryPtr;
                     //build the check query string
+                    //check query to further verify that the client has a valid SQL table
                     checkQueryPtr = strcpy(checkQuery,"SHOW TABLES LIKE '");
-                    checkQueryPtr = strcat(checkQuery,buffer);
+                    checkQueryPtr = strcat(checkQuery,result[1]);
                     checkQueryPtr = strcat(checkQuery, "';");
-
+                    //print out the check query
+                    printf("\n");
+                    printf(checkQueryPtr);
+                    printf("\n");
                     //the result variable for the table check
                     MYSQL_RES *confresCheck;
                     //query to check if table exists
                     mysql_query(&con,checkQueryPtr);
                     //store the result of the table present check in the result variable
                     confresCheck = mysql_store_result(&con);
+                    //if the client is attached to a valid table, then create files needed for it if they don't exist
+                    //and or just send out the current command to the client
                     if(mysql_num_rows(confresCheck) != 0) {
-                    strcpy(buffer,result[0]);
-                    free(result);
-                    tempLocPt = strcat(tempLoc, buffer);
-                    tempLocPt = strcat(tempLoc,"/");
-                    for(int i = 0; i < max_clients; i ++) {
-                    if(strcmp(tables[i],"")==0) {
-                    strcpy(tables[i],tempLoc);
-                    break;
-                    }
-                    }
-                    struct stat st = {0};
-                    char commandPath[BUF_LEN] = "";
-                    char * commandPathPt = strcpy(commandPath,tempLocPt);
-                    commandPathPt = strcat(commandPath,commandFileName);
-                    FILE * commandFile;
-                    if(stat(tempLocPt,&st)==-1) {
-                    printf("directory does not exist so we have to create it  \n");
-                    mkdir(tempLocPt,0777);
-                    chmod(tempLocPt,0777);
-                    for(int i = 0; i<clientFiles-1; i++) {
-                        char tempFileLoc[BUF_LEN] = "";
-                        char * tempFileLocPt;
-                        tempFileLocPt = strcpy(tempFileLoc,tempLoc);
-                        tempFileLocPt = strcat(tempFileLoc,clientFileNames[i]);
-                        FILE *temp = fopen(tempFileLocPt,"ab+");
-                        chmod(tempFileLocPt,0777);
-                        fprintf(temp,"9");
-                        fflush(temp);
-                        fclose(temp);
-                    }
-                    commandFile = fopen(commandPathPt,"w+");
-                    chmod(commandPathPt,0777);
-                    fprintf(commandFile,"9");
-                    fflush(commandFile);
-                    fclose(commandFile);
-                    }
-                    commandFile = fopen(commandPathPt,"r");
-                    char line[BUF_LEN] ="";
-                    fgets(line,sizeof(line),commandFile);
-                    strcpy(line,fTrim(line));
-                    fclose(commandFile);
-                    send(sd, line,strlen(line),0);
+                        //copy over the table name into the buffer
+                        strcpy(buffer,result[1]);
+                        //free the result
+                        free(result);
+                        //concat the table name onto the client dir
+                        tempLocPt = strcat(tempLoc, buffer);
+                        tempLocPt = strcat(tempLoc,"/");
+                        //copy over the table dir into the table array
+                        for(int i = 0; i < max_clients; i ++) {
+                            if(strcmp(tables[i],"")==0) {
+                                strcpy(tables[i],tempLoc);
+                                break;
+                            }
+                        }
+                        //used to determine whether the necessary directory exists
+                        struct stat st = {0};
+                        //char array and pointer to hold path to the command file
+                        //and append the command file path onto them
+                        char commandPath[BUF_LEN] = "";
+                        char * commandPathPt = strcpy(commandPath,tempLocPt);
+                        commandPathPt = strcat(commandPath,commandFileName);
+                        //file pointer for the command file
+                        FILE * commandFile;
+                        //if the dir for the client does not exist, create the dir and files
+                        if(stat(tempLocPt,&st)==-1) {
+                            printf("directory does not exist so we have to create it  \n");
+                            //create the dir and set proper permissions with chmod since the param in mkdir does not work
+                            mkdir(tempLocPt,0777);
+                            chmod(tempLocPt,0777);
+                            //loop to create the daemons files in the dir
+                            for(int i = 0; i<clientFiles-1; i++) {
+                                //holds the file location
+                                char tempFileLoc[BUF_LEN] = "";
+                                char * tempFileLocPt;
+                                //concat the file location
+                                tempFileLocPt = strcpy(tempFileLoc,tempLoc);
+                                tempFileLocPt = strcat(tempFileLoc,clientFileNames[i]);
+                                //open the file in write append mode+ which will create if file not present
+                                FILE *temp = fopen(tempFileLocPt,"ab+");
+                                //change permissions on file to make it properly accessable
+                                chmod(tempFileLocPt,0777);
+                                //print a default state to the file then close it
+                                fprintf(temp,"9");
+                                fflush(temp);
+                                fclose(temp);
+                            }
+                            //open command file in write+ mode that'll open it for writing and create it if not present
+                            commandFile = fopen(commandPathPt,"w+");
+                            //set proper permissions for the file
+                            chmod(commandPathPt,0777);
+                            fprintf(commandFile,"9");
+                            fflush(commandFile);
+                            fclose(commandFile);
+                        }
+                        //if there is a valid table attached to client and dir exists, then we just read from command file and send command to client
+                        commandFile = fopen(commandPathPt,"r");
+                        char line[BUF_LEN] ="";
+                        //get the first line of the command file
+                        fgets(line,sizeof(line),commandFile);
+                        //copy trimmed line into the line var
+                        strcpy(line,fTrim(line));
+                        fclose(commandFile);
+                        //send command to client
+                        send(sd, line,strlen(line),0);
                     } else {
-                    free(result);
-                    close(sd);
-                    client_socket[newIndex] = 0;
-                    strcpy(tables[newIndex],"");
+                        //if client does not have a valid table, then free the result, close the socket, and wipe the tables index thing
+                        free(result);
+                        close(sd);
+                        client_socket[newIndex] = 0;
+                        strcpy(tables[newIndex],"");
                     }
-                mysql_free_result(confresCheck);
+                    mysql_free_result(confresCheck);
                 }
 
         }
@@ -323,14 +356,15 @@ while (fgets(line, sizeof(line), plist)) {
         //else its some IO operation on some other socket
         for (int i = 0; i < max_clients; i++)
         {
+            //buffer for storing the read on the socket
             char buffer[BUF_LEN];
+            //running socket descriptor
             sd = client_socket[i];
-
+            //if the socket descriptor is not 0, then we read
             if (FD_ISSET( sd , &readfds))
             {
 
-                //Check if it was for closing , and also read the
-                //incoming message
+                //check if incoming message has any contents, if not then disconnect the socket descriptor
                 if ((valread = read( sd , buffer, BUF_LEN)) <= 0)
                 {
                     //Somebody disconnected , get his details and print
@@ -348,47 +382,61 @@ while (fgets(line, sizeof(line), plist)) {
                 //Echo back the message that came in
                 else
                 {
-                    //set the string terminating NULL byte on the end
-                    //of the data read
+
 
                     printf("Information recieved: ");
                     printf(buffer);
                     printf("\n");
+                    //set the string terminating NULL byte on the end
+                    //of the data read
                     buffer[valread+1] = '\0';
+                    //split the read by the commas
                     char ** tempBuff = splitString(buffer);
+                    //store the path of the client directory associated with this table
                     char tablePath[BUF_LEN] = "";
                     char * tablePathPt = strcpy(tablePath,tables[i]);
 
-
+                    //loop through client files and write various parts of the read message to those file
                     for(int i2 = 1; i2 < clientFiles; i2++) {
-                    char daemonPath[BUF_LEN];
-                    char * daemonPathPt = strcpy(daemonPath,tablePath);
-                    daemonPathPt = strcat(daemonPath,clientFileNames[i2-1]);
-                    FILE * daemonFile = fopen(daemonPathPt, "w");
-                    fprintf(daemonFile,tempBuff[i2]);
-                    printf("Daemon File: ");
-                    printf(daemonPathPt);
-                    printf("\n");
-                    printf("Status: ");
-                    printf(tempBuff[i2]);
-                    printf("\n");
-                    fflush(daemonFile);
-                    fclose(daemonFile);
+                        //store the path of one daemon file
+                        char daemonPath[BUF_LEN];
+                        char * daemonPathPt = strcpy(daemonPath,tablePath);
+                        daemonPathPt = strcat(daemonPath,clientFileNames[i2-1]);
+                        //open the daemon file for writing
+                        FILE * daemonFile = fopen(daemonPathPt, "w");
+                        //write to the daemon file
+                        fprintf(daemonFile,tempBuff[(i2+1)]);
+                        //print out the file and what was written to it
+                        printf("Daemon File: ");
+                        printf(daemonPathPt);
+                        printf("\n");
+                        printf("Status: ");
+                        printf(tempBuff[(i2+1)]);
+                        printf("\n");
+                        //flush the file stream and close the file
+                        fflush(daemonFile);
+                        fclose(daemonFile);
                     }
-
+                    //store the command file path
                     char commandPath[BUF_LEN] = "";
                     char * commandPathPt;
                     commandPathPt = strcat(commandPath,tables[i]);
                     commandPathPt = strcat(commandPath,commandFileName);
+                    //print the command file path
                     printf(commandPathPt);
                     printf("\n \n");
+                    //open the command file for reading
                     FILE * commandFile = fopen(commandPathPt,"r");
+                    //get the first line of the commandFile and trim and copy it into a char array
                     char line[BUF_LEN] ="";
                     fgets(line,sizeof(line),commandFile);
                     strcpy(line,fTrim(line));
+                    //flush and close the file
                     fflush(commandFile);
                     fclose(commandFile);
+                    //send the command out to the client socket
                     send(sd, line,strlen(line),0);
+                    //free the split buffer
                     free(tempBuff);
                 }
             }
