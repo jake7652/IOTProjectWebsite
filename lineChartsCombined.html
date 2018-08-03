@@ -265,7 +265,7 @@ return ret;
 var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
 var chartDataCalls = 0; //keep track of running chart calls
 //ajax call using jquery to sqlMult req for the fields in the database for N lines 
-function getFromSql(field,lines,domain,table,callback) {
+function getFromSql(field,lines,domain,table,tableNum,callback) {
 var ret = null;
 chartDataCalls++;
 ajaxCalls[ajaxCalls.length] = 
@@ -276,7 +276,7 @@ ajaxCalls[ajaxCalls.length] =
 	 data: {arguments: [field,lines,plotToSql(domain[0]),plotToSql(domain[1]),table]},
          success: function(output) {
 		    chartDataCalls--;
-		    callback(output);
+		    callback(output,tableNum);
 		    
 }
 		
@@ -313,10 +313,27 @@ currentFields = fields;
 var query = {};
 query.data = new Array();
 query.time = new Array();
-function queryCallback(result) {
 
-	query.data[query.data.length] = result.data;
-	query.time[query.time.length] = result.time;
+
+//does not read in as array, reads in as a string with elements separated by commas
+var tablesToGraph = sessionStorage.getItem("Tables").split(",");
+for(var i = 0; i < tablesToGraph.length; i++) {
+//alert(tablesToGraph[i]);
+if(tablesToGraph[i] != "") {
+if(domain.length == 0) {
+domain[0] = "0";
+domain[1] = "9999-99-99";
+getFromSql(fields,"0",domain,tablesToGraph[i],i,queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
+domain = [];
+} else {
+getFromSql(fields,"0",domain,tablesToGraph[i],i,queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
+}
+}
+
+function queryCallback(result,tableNum) {
+
+	query.data[tableNum] = result.data;
+	query.time[tableNum] = result.time;
 	//alert(query.data[query.data.length-1]);
 	//alert(result.data);
 	if(chartDataCalls == 0) {
@@ -518,16 +535,11 @@ Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,
 
 
 //realtime updater of the plot variables
+function getFromSqlUpdater(fields,lines,domain,async) {
+var update = true;
 var runningUpdates = 0;
 var tracesArr = new Array();
 var updatedPoints = {
-	x: [],
-	y: [],
-	} 
-function getFromSqlUpdater(fields,lines,domain,async) {
-runningUpdates = 0;
-tracesArr = new Array();
-updatedPoints = {
 	x: [],
 	y: [],
 	} 
@@ -544,7 +556,7 @@ ajaxCalls[ajaxCalls.length] =
 	 //alert(tables[i3]);
 	 var newTemps = output.data;	 
 	 var newDates = output.time;
-	 var update = false; //says whether or not there are new dates in database
+	 //var update = false; //says whether or not there are new dates in database
 	 var x_update = new Array();
 	 var y_update = new Array();
 	 for(var i = 0; i < newTemps.length; i++) {
@@ -554,8 +566,7 @@ ajaxCalls[ajaxCalls.length] =
 	 //check to see if we do indeed have some new dates in the database and if there is some then we add them to the x_update and y_update arrays
 	 for(var i = 0; i < newDates.length; i++){
 	 if(parseInt(newDates[i]) > parseInt(maxDate[i3])) {
-	 maxDate[i3] = newDates[i];
-	 update = true;
+	 
 	 var tempDate = "";
 	 tempDate = tempDate.concat (newDates[i].substring(0,4), "-" , newDates[i].substring(4,6) ,"-" , newDates[i].substring(6,8) ," " ,newDates[i].substring(8,10) ,":" 
 	 ,newDates[i].substring(10,12) ,":" ,newDates[i].substring(12,14));
@@ -575,21 +586,21 @@ ajaxCalls[ajaxCalls.length] =
 	//clone over the date array for every sensor and make a extendtraces array for the update function
 	//tracesArr[i3] = new Array();
 	var x_mult_update = new Array();
-	
+	if(parseInt(newDates[newDates.length-1]) > parseInt(maxDate[i3])) { 
+		maxDate[i3] = newDates[newDates.length-1]; 
+	} else {
+		update = false;
+	}
   	for(var i = 0; i < newTemps.length; i++) {
-	tracesArr[i+(i3*newTemps.length)] = i+(i3*newTemps.length);
-	x_mult_update[i] = x_update;
-	updatedPoints.x[updatedPoints.x.length] = x_update;
-	updatedPoints.y[updatedPoints.y.length] = y_update[i];
+		tracesArr[i+(i3*newTemps.length)] = i+(i3*newTemps.length);
+		x_mult_update[i] = x_update;
+		updatedPoints.x[updatedPoints.x.length] = x_update;
+		updatedPoints.y[updatedPoints.y.length] = y_update[i];
 	}
 	
-	//if we have some updated points to draw on the graph then we store them in a variable and tell the graph to update
-	if(update == true) {
 	
-	//now actually extend the traces to push the new points onto the graph
-	}
 	runningUpdates=runningUpdates-1;	
-	if(runningUpdates == 0) {
+	if(runningUpdates == 0 && update) {
 	Plotly.extendTraces(plotName,updatedPoints,tracesArr);
 	}
                   }
@@ -636,20 +647,7 @@ getFromSqlUpdater(fields,"90",domain,true);
 
 $.LoadingOverlay("hide");
 }
-//does not read in as array, reads in as a string with elements separated by commas
-var tablesToGraph = sessionStorage.getItem("Tables").split(",");
-for(var i = 0; i < tablesToGraph.length; i++) {
-//alert(tablesToGraph[i]);
-if(tablesToGraph[i] != "") {
-if(domain.length == 0) {
-domain[0] = "0";
-domain[1] = "9999-99-99";
-getFromSql(fields,"0",domain,tablesToGraph[i],queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
-domain = [];
-} else {
-getFromSql(fields,"0",domain,tablesToGraph[i],queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
-}
-}
+
 }
 
 
@@ -788,14 +786,14 @@ sliderSql("RTCDataTime",1,lastDateCallback);
 //called after the first date is set and we have the last date in the local database to setup the slider
 function lastDateCallback(output) {
 lastDate = sqlToSlider(output["RTCDataTime"]);
-selectedMax = lastDate;
+selectedMax = new Date(lastDate.getTime()+ Math.floor(lastDate.getTimezoneOffset()*60*1000)+86400*1000);
   $(function() {
     $( "#slider-range" ).slider({
       range: true,
       min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000), //first date in millis with timezone accounted for
-      max: lastDate.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000), //last date in millis with timezone accounted for
+      max: lastDate.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000)+86400*1000, //last date in millis with timezone accounted for and offset by a day
       step: 1, //step is 1 millis for smoother scrolling
-      values: [ firstDate.getTime(), lastDate.getTime()], 
+      values: [ firstDate.getTime(), lastDate.getTime()+ Math.floor(lastDate.getTimezoneOffset()*60*1000)+86400*1000], 
       slide: function( event, ui ) { 
  	//as we slide we have to update the slider label and the min and max 
         $( "#amount" ).val( (new Date(ui.values[ 0 ]).toDateString() ) + " - " + (new Date(ui.values[ 1 ])).toDateString() );
