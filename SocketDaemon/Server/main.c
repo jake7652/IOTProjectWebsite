@@ -214,8 +214,12 @@ while (fgets(line, sizeof(line), plist)) {
                 }
             }
             char buffer[BUF_LEN];  //data buffer of 1K
+            printf("\n new connection break 1 \n ");
             valread = read( sd , buffer, BUF_LEN);
-
+            printf("\n new connection break 1 \n ");
+            char *breakBuf = strcat(buffer,"");
+            printf(breakBuf);
+            printf("\n");
             if (valread <= 0)
                 {
                     //Somebody disconnected , get his details and print
@@ -240,9 +244,11 @@ while (fgets(line, sizeof(line), plist)) {
 
                     //set the string terminating NULL byte on the end
                     //of the data read
+                    printf("\n break 2 \n");
                     buffer[valread] = '\0';
                     char tempBuff[BUF_LEN];
                     char ** result = splitString(buffer);
+                     printf("\n break 2 \n");
                     //char * tempBuffPt = strcpy(tempBuff,buffer);
 
 
@@ -288,6 +294,7 @@ while (fgets(line, sizeof(line), plist)) {
                         FILE *temp = fopen(tempFileLocPt,"ab+");
                         chmod(tempFileLocPt,0777);
                         fprintf(temp,"9");
+                        fflush(temp);
                         fclose(temp);
                     }
                     commandFile = fopen(commandPathPt,"w+");
@@ -321,10 +328,10 @@ while (fgets(line, sizeof(line), plist)) {
 
             if (FD_ISSET( sd , &readfds))
             {
-                valread = read( sd , buffer, BUF_LEN);
+
                 //Check if it was for closing , and also read the
                 //incoming message
-                if (valread <= 0)
+                if ((valread = read( sd , buffer, BUF_LEN)) <= 0)
                 {
                     //Somebody disconnected , get his details and print
                     getpeername(sd , (struct sockaddr*)&address , \
@@ -365,6 +372,7 @@ while (fgets(line, sizeof(line), plist)) {
                     printf("Status: ");
                     printf(tempBuff[i2]);
                     printf("\n");
+                    fflush(daemonFile);
                     fclose(daemonFile);
                     }
 
@@ -378,6 +386,7 @@ while (fgets(line, sizeof(line), plist)) {
                     char line[BUF_LEN] ="";
                     fgets(line,sizeof(line),commandFile);
                     strcpy(line,fTrim(line));
+                    fflush(commandFile);
                     fclose(commandFile);
                     send(sd, line,strlen(line),0);
                     free(tempBuff);
