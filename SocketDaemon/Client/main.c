@@ -117,6 +117,8 @@ while (fgets(line, sizeof(line), plist)) {
     fgets(line, sizeof(line),temp);
     lineTempPt = strcat(lineTemp,line);
     lineTempPt = strcat(lineTemp, ",");
+    fflush(temp);
+    fclose(temp);
     }
     lineTempPt = strcat(lineTemp, "END");
 //    printf(hello);
@@ -125,7 +127,12 @@ while (fgets(line, sizeof(line), plist)) {
     printf(lineTempPt);
     printf("\n");
     //connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    printf("\n Breakpoint 3");
     valread = read( sock , buffer, BUF_LEN);
+    printf("\n Breakpoint 3");
+    printf("\n Data Read In: ");
+    printf(buffer);
+    printf("\n");
     sleep(1);
     if(valread <= 0) {
     printf("Server has gone away");
@@ -151,7 +158,9 @@ while (fgets(line, sizeof(line), plist)) {
     }
 
     }
+    printf(" test breakpoint \n");
     buffer[valread] = '\0';
+    printf(" test breakpoint \n");
     if(strcmp(commandMonitor,buffer)==0) {
     } else{
     strcpy(commandMonitor,"");
@@ -177,7 +186,9 @@ while (fgets(line, sizeof(line), plist)) {
     fclose(commandFile);
     sleep(10);
     }
+    printf(" test breakpoint two \n");
     strcpy(buffer,"");
+    printf(" test breakpoint two \n");
     sleep(1);
     }
 
