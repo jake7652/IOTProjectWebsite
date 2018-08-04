@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<!-- offline source for jquery used for calling php script from javascript -->
+<script src="jquery-3.3.1.js"></script>
+<script src="/jquery-ui/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="/jquery-ui/jquery-ui.min.css">
+<script src="/DataTables/datatables.min.js"></script>
+<link rel="stylesheet" href="/DataTables/datatables.min.css">
+<script src="/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
+<head>
+<!-- We just need styling for the pages button -->
+<style>
+
+
+
+/* for the fieldsets encompassing the sliders and slider labels */
+legend {
+font-size: 20px;
+position:relative;
+
+}
+
+/* formatting for the paging buttons */
+.pagebutton { 
+display: block;
+border: none;
+width: 100%;
+background-color: #4CAF50;
+font-size: 16px;
+cursor: pointer;
+text-align: center;
+
+}
+
+/* what happens when the user hovers over a page button */
+.pagebutton:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+
+
+</style>
+</head>
+<body>
+
+
+<!-- manually add the headers for each column but nothing else -->
+<table id="pagesTable" class="display" style="width:100%">
+  <thead>
+  <tr>
+    <th>Click on a button to go to a webpage</th>
+  </tr>
+</thead>
+<tbody>
+
+
+</tbody>
+</table>
+
+<script>
+
+var pages = ['lineCharts','lineChartsCombined','management','table'];
+
+var table;
+//create the table frame and store in a variable for easy changes
+  table = $('#pagesTable').DataTable( {
+
+	"paging": false,
+	"language": {
+	"search": "Page search:"
+
+	}
+        //"columnDefs": [ {
+            //"targets": -1,
+            //"data": null,
+            //"defaultContent": "<button>Graph readings</button>"
+      //  } ]
+    } );
+
+for(var i = 0; i < pages.length; i++) {
+//insert a row for every page with just a button to redirect to that page
+table.row.add( [
+"<button class=pagebutton value="+ pages[i] +">".concat(pages[i],"</button>")
+]
+).draw(true);
+$.LoadingOverlay("hide");
+}
+
+//what happens when one of the graph buttons are clicked
+$('#pagesTable tbody').on( 'click', 'button', function () {
+        $.LoadingOverlay("show");
+        
+	//redirect to the page that was selected by this button
+	alert(this.value);
+	window.location.href = this.value +".html";
+        
+    } );
+
+</script>
+
+
+
+
