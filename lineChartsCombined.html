@@ -201,6 +201,13 @@ TO
 
 <br>	
 	
+<fieldset>
+<legend>Go back to index</legend>
+<input type='button' id='back_button' style="width: 100%; height: 50px; font-size: 16px; text-align-last:center; background-color: #4CAF50;" value='Go Back' onClick='goBack()'>
+</select>
+</fieldset>
+
+
 <!-- footer to show when the website was last updated -->
 <footer> 
 <br>
@@ -642,7 +649,7 @@ getFromSqlUpdater(fields,"90",domain,true);
 
 
 
-},60000); //call the updater function every 60 seconds
+},6000); //call the updater function every 60 seconds
 
 
 $.LoadingOverlay("hide");
@@ -872,6 +879,11 @@ function tableSelectHandler(checkboxName) {
 
 }
 
+function goBack(){
+$.LoadingOverlay("show");
+window.location.href = 'index.html';
+}
+</script>
 
 //end slider script
 </script>
