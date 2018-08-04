@@ -187,6 +187,15 @@ TO
 <select id='table_select' onChange="changeTable(this.value)" style="width: 100%; height: 50px; font-size: 16px; text-align-last:center; background-color: #4CAF50;">
 </select>
 </fieldset>
+
+<br>
+
+<fieldset>
+<legend>Go back to index</legend>
+<input type='button' id='back_button' style="width: 100%; height: 50px; font-size: 16px; text-align-last:center; background-color: #4CAF50;" value='Go Back' onClick='goBack()'>
+</select>
+</fieldset>
+
 <!-- footer to show when the website was last updated -->
 <footer> 
 <br>
@@ -708,14 +717,14 @@ sliderSql("RTCDataTime",1,lastDateCallback);
 //called after the first date is set and we have the last date in the local database to setup the slider
 function lastDateCallback(output) {
 lastDate = sqlToSlider(output["RTCDataTime"]);
-selectedMax = lastDate;
+selectedMax = new Date(lastDate.getTime() + 86400*1000);
   $(function() {
     $( "#slider-range" ).slider({
       range: true,
       min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000), //first date in millis with timezone accounted for
-      max: lastDate.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000), //last date in millis with timezone accounted for
+      max: selectedMax.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000), //last date in millis with timezone accounted for
       step: 1, //step is 1 millis for smoother scrolling
-      values: [ firstDate.getTime(), lastDate.getTime()], 
+      values: [ firstDate.getTime(), selectedMax.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000)], 
       slide: function( event, ui ) { 
  	//as we slide we have to update the slider label and the min and max 
         $( "#amount" ).val( (new Date(ui.values[ 0 ]).toDateString() ) + " - " + (new Date(ui.values[ 1 ])).toDateString() );
@@ -796,7 +805,10 @@ window.scrollTo(0,0);
 history.go(0); 
 }
 
-
+function goBack(){
+$.LoadingOverlay("show");
+window.location.href = 'index.html';
+}
 </script>
 
 
