@@ -139,19 +139,25 @@ float: left;
 
 <!-- encompassing form for the sliders and labels  -->
 <form style="height:50%;">
+
 <!-- fieldset that contains the border for the sliders and slider labels -->
 <fieldset style="height:50%;">
+
 <!-- Date slider label that appears on the top left  -->
 <legend> Select older sensor data to view  </legend>
+
 <!-- encompassing div for the labels for the sliders -->
 <div style="width:100%; display:block; height:70%"> 
+
 <!-- left slider label div -->
   <div class = "divLeft">
   <label for="amount" style:"width:50%;">Date of reading:</label> 
   <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold; " />
   </div>
+
 <!-- spacer between the labels -->
   <span class = "separator"><br></span>
+
 <!-- label for the right slider -->
   <div class = "divRight">
   <label for="hoursmins" style="display:block; float:left;">Time of reading: <br></label>
@@ -251,8 +257,8 @@ Temperature1: "Water Temperature",
 
 //if the table has not been set, then set the table that we are pulling the data from to the default DataTable
 if(sessionStorage.getItem('Table') == null) {
-//set the default table from the database that the table on the website pulls from
-sessionStorage.setItem('Table', 'DataTable');
+	//set the default table from the database that the table on the website pulls from
+	sessionStorage.setItem('Table', 'DataTable');
 }
 //alert(sessionStorage.getItem('Table'));
 
@@ -261,28 +267,28 @@ sessionStorage.setItem('Table', 'DataTable');
 //converts the format that the SQL table uses to store time into a format used for the graph
 function sqlToTable(date) {
 
-return "".concat (date.substring(0,4), "-" , date.substring(4,6) ,"-" , date.substring(6,8) ," " ,date.substring(8,10) ,":" ,date.substring(10,12) ,":" ,date.substring(12,14));
+	return "".concat (date.substring(0,4), "-" , date.substring(4,6) ,"-" , date.substring(6,8) ," " ,date.substring(8,10) ,":" ,date.substring(10,12) ,":" ,date.substring(12,14));
 }
 
 //converts the format that the graph uses to display time to the format that our SQL table uses to store it
 function tableToSql(date) {
 
-return "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
+	return "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
 
 }
 //conversion from the format that the slider uses to display time to the format our SQL table uses to store time
 function sliderToSql(date,time) {
 
-//have to do some formatting using concat and some nested condensed if elses
-return "".concat(date.getFullYear(),(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),((date.getDate()<10) ? '0' +date.getDate() : date.getDate()),time.substring(0,2),time.substring(3,5),time.substring(6,8));
+	//have to do some formatting using concat and some nested condensed if elses
+	return "".concat(date.getFullYear(),(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),((date.getDate()<10) ? '0' +date.getDate() : date.getDate()),time.substring(0,2),time.substring(3,5),time.substring(6,8));
 //return date.getFullYear();
 }
 
 //conversion from the format that our sql table uses to store time to the format that the slider uses to display it
 function sqlToSlider(date) {
-var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
 
-return new Date(formatted);
+	var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
+	return new Date(formatted);
 }
 
 
@@ -304,16 +310,16 @@ function tableSqlUpdate(field,lines,async) {
          dataType: 'json',
 	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
          success: function(output) {
-	 //for every field, go into the row it represents and change the sensor value and the timestamp
-	 for(var i = 0; i < fields.length; i++) {
-         var tempData = table.row(i).data();
-	 tempData[1] = output[fields[i]];
-	 tempData[3] = sqlToTable(output[timeField]); 
-         table.row(i).data(tempData); 
-	 }
-	 finished = true; //check if ajax call is done so we can check before trying another
+	 	//for every field, go into the row it represents and change the sensor value and the timestamp
+	 	for(var i = 0; i < fields.length; i++) {
+         		var tempData = table.row(i).data();
+	 		tempData[1] = output[fields[i]];
+	 		tempData[3] = sqlToTable(output[timeField]); 
+         		table.row(i).data(tempData); 
+	 	}
+	 	finished = true; //check if ajax call is done so we can check before trying another
 		    
-}
+	 }
 		
 });
 return finished; //whether or not we have finished retrieving the updated sensor values so we do not call another before the first is finished
@@ -328,7 +334,7 @@ function firstTimeQuery(callback) {
          dataType: 'json',
 	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
          success: function(output) {
-	 callback(output);
+	 	callback(output);
 	 
 		    
 }
@@ -347,24 +353,24 @@ function sliderTimeQuery(time) {
          dataType: 'json',
 	 data: {arguments: [ time, sessionStorage.getItem('Table') ]},
          success: function(output) {
-	 ret = output;
-	  //for each field, get the row for it and update the sensor column and the time column
-	 for(var i = 0; i < fields.length; i++) {
-	 var tempData = table.row(i).data();
-         tempData[1] = output[fields[i]];
-         tempData[3] = sqlToTable(output[timeField]);  
-	 table.row(i).data(tempData); 
-	 }
-	 $.LoadingOverlay("hide");
+	 	ret = output;
+	  	//for each field, get the row for it and update the sensor column and the time column
+	 	for(var i = 0; i < fields.length; i++) {
+	 		var tempData = table.row(i).data();
+         		tempData[1] = output[fields[i]];
+         		tempData[3] = sqlToTable(output[timeField]);  
+	 		table.row(i).data(tempData); 
+	 	}
+	 	$.LoadingOverlay("hide");
 		    
-}
+	}
 		
 });
 return ret; //return the result of the ajax call
 }
 
 
-//calls for the first line of the RTC data time field
+//calls for the names of all the tables in the database
 function tableNamesQuery(callback) { 
 	 ret = null;
 	 $.ajax({ url: "TableNameReq.php",
@@ -373,7 +379,7 @@ function tableNamesQuery(callback) {
          dataType: 'json',
 	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
          success: function(output) {
-	 callback(output);
+	 	callback(output);
 	 
 		    
 }
@@ -432,25 +438,21 @@ var readings = false;
 //function called when the ajax call is done. This has to be done like this in order to allow the calls to the database to be asyncronous
 //populates the table and creates the realtime update stuff for it
 function readingsCallback(result) {
-readings = result;
-//previously used in the for loop but not anymore
-var sensorRows = new Array();
-//for loop used to populate each line of the table for each field
-for(var i = 0; i < fields.length; i++) {
-//var button = document.createElement(i.toString());
-//button.type = "button";
-//button.className = "btn";
-//button.value = fields[i];
-//insert a row formatted as: sensor label, current sensor reading, sensor unit, time of reading, and a button to graph the sensor.
-table.row.add( [
-LABELS[fields[i]],
-readings[fields[i]],
-UNITS[fields[i]],
-sqlToTable(readings[timeField]),
-"<button class=graphbutton>Graph ".concat(LABELS[fields[i]],"</button>")
-]
-).draw(true);
-$.LoadingOverlay("hide");
+	readings = result;
+	//previously used in the for loop but not anymore
+	var sensorRows = new Array();
+	//for loop used to populate each line of the table for each field
+	for(var i = 0; i < fields.length; i++) {
+		//insert a row formatted as: sensor label, current sensor reading, sensor unit, time of reading, and a button to graph the sensor.
+		table.row.add( [
+			LABELS[fields[i]],
+			readings[fields[i]],
+			UNITS[fields[i]],
+			sqlToTable(readings[timeField]),
+			"<button class=graphbutton>Graph ".concat(LABELS[fields[i]],"</button>")
+		]
+		).draw(true);
+	$.LoadingOverlay("hide");
 }
 
 //what happens when one of the graph buttons are clicked
@@ -467,9 +469,9 @@ $('#sensorsTable tbody').on( 'click', 'button', function () {
 
 //table update loop
 setInterval(function(){
-if(doneUpdating == true && !updatesPaused) { //if the previous ajax call is done and updates are not paused then we call to update the table
-doneUpdating = tableSqlUpdate(fields,1,true);
-}
+	if(doneUpdating == true && !updatesPaused) { //if the previous ajax call is done and updates are not paused then we call to update the table
+		doneUpdating = tableSqlUpdate(fields,1,true);
+	}
 }, 10000); //request to update the table every 10 seconds
 
 
@@ -487,8 +489,8 @@ var lastDate = false;
 //once the firstDate ajax is done we set first date and then do a call to the last date ajax. Could probably do some magic to where these do not need to be called sequentially
 //by checking to see if both values set in one callback
 function firstDateCallback(result) {
-firstDate = sqlToSlider(result[timeField]);
-getFromSql(timeField,1,lastDateCallback);
+	firstDate = sqlToSlider(result[timeField]);
+	getFromSql(timeField,1,lastDateCallback);
 }
 //current date and time set in the last date callback and placed outside of it to allow other functions to use it
 var currentTime;
@@ -497,10 +499,10 @@ var currentDate;
 
 //after the first date callback is done and the last date is done setup the sliders in the callback
 function lastDateCallback(result) {
-lastDate = sqlToSlider(result[timeField]);
-//default time is midnight
-currentTime = "00:00:00"; 
-currentDate = new Date(firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000));
+	lastDate = sqlToSlider(result[timeField]);
+	//default time is midnight
+	currentTime = "00:00:00"; 
+	currentDate = new Date(firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000));
   $(function() {
     $( "#slider-range" ).slider({
       range: false,
@@ -573,37 +575,36 @@ window.scrollTo(0,0); //scroll to top of page
 //show the loading overlay as we reset the time to the realtime updates. Done outside the callback so it's done as soon as possible
 $.LoadingOverlay("show");
 function resetCallback(output) {
-//for every field, go into the row it represents and change the sensor value and the timestamp
+	 //for every field, go into the row it represents and change the sensor value and the timestamp
 	 for(var i = 0; i < fields.length; i++) {
-         var tempData = table.row(i).data();
-	 tempData[1] = output[fields[i]];
-	 tempData[3] = sqlToTable(output[timeField]); 
-         table.row(i).data(tempData); 
+         	var tempData = table.row(i).data();
+	 	tempData[1] = output[fields[i]];
+	 	tempData[3] = sqlToTable(output[timeField]); 
+         	table.row(i).data(tempData); 
 	 }
 //hide once we are done restting the table
 $.LoadingOverlay("hide");
 
 updatesPaused = false; //this will break the function if we have not already made a updatesPaused variable
-}
+} //end reset callback
 
 //call a async request to SQL for the last line in the database
 getFromSql(fields,1,resetCallback);
 
-}
+} //end resetTime
 
 //function called when the user presses the button next to the sliders to view older data
 function oldDataReq(){
 
 
-//show the loading overlay as we start the request
-$.LoadingOverlay("show");
+	//show the loading overlay as we start the request
+	$.LoadingOverlay("show");
 
 
-window.scrollTo(0,0); //scroll to top of page
-//stop realtime sensor updates if user stops sliding 
+	window.scrollTo(0,0); //scroll to top of page
+	//stop realtime sensor updates if user stops sliding 
 	if(currentUpdate != false) {
-	currentUpdate.abort();
-	
+		currentUpdate.abort();
 	}
 	//tell the table to pause the realtime updates 
 	updatesPaused = true;	
@@ -612,24 +613,23 @@ window.scrollTo(0,0); //scroll to top of page
 	sliderTimeQuery(sliderToSql(currentDate,currentTime));
 	
 	
-
 }
 
 //end script 
 
 //callback to the tables query and populates the table selector box
 function populateTables(tables) {
-//get the table select dropdown menu and store in variable
-select = document.getElementById('table_select');
-//go through the tables array and adds a option for each table in the remote DB
-for (var i = 0; i < tables.length; i++){
-    var opt = document.createElement('option');
-    opt.value = tables[i];
-    opt.innerHTML = tables[i];
-    select.appendChild(opt);
-    if(select.options[i].value == sessionStorage.getItem('Table')){
-    select.options[i].defaultSelected = true;
-    }
+	//get the table select dropdown menu and store in variable
+	select = document.getElementById('table_select');
+	//go through the tables array and adds a option for each table in the remote DB
+	for (var i = 0; i < tables.length; i++){
+    		var opt = document.createElement('option');
+    		opt.value = tables[i];
+    		opt.innerHTML = tables[i];
+    		select.appendChild(opt);
+    		if(select.options[i].value == sessionStorage.getItem('Table')){
+    		select.options[i].defaultSelected = true;
+    	}
 }
 //hide the loading overlay when the selector is populated
 $.LoadingOverlay("hide");
@@ -640,18 +640,19 @@ tableNamesQuery(populateTables);
 
 //function called to change the table when the user selects a new table
 function changeTable(table) {
-$.LoadingOverlay("show");
-//set the table to the updated selection
-sessionStorage.setItem('Table', table);
-//scroll to the top of the page
-window.scrollTo(0,0);
-//refresh the page after the table changes because pretty much all elements of the page have to be redrawn
-history.go(0); 
+	$.LoadingOverlay("show");
+	//set the table to the updated selection
+	sessionStorage.setItem('Table', table);
+	//scroll to the top of the page
+	window.scrollTo(0,0);
+	//refresh the page after the table changes because pretty much all elements of the page have to be redrawn
+	history.go(0); 
 }
 
 function goBack(){
-$.LoadingOverlay("show");
-window.location.href = 'index.html';
+
+	$.LoadingOverlay("show");
+	window.location.href = 'index.html';
 }
 
 
