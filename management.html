@@ -150,7 +150,7 @@ website last updated 7-21-2018 04:53
 
 <script>
 
-//used for updating the sensor data in realtime. Asks for the last (lines) of the sql table and then changes the appropriate table columns when done
+//used for updating when a sensor platform updated in realtime
 var currentUpdate = false;
 function lastUpdateReq() { 
 	 currentUpdate = $.ajax({ url: "TableReq.php",
@@ -159,20 +159,20 @@ function lastUpdateReq() {
          dataType: 'json',
 	 data: {arguments: []}, //no arguments needed for this
          success: function(output) {
-	 //for every field, go into the row it represents and change the sensor value and the timestamp
-	 for(var i = 0; i < fields.length; i++) {
-         var tempData = table.row(i).data();
-	 tempData[1] = sqlToTable(output[timeField]); 
-         table.row(i).data(tempData); 
-	 }
-	 finished = true; //check if ajax call is done so we can check before trying another
+	 	//for every field, go into the row it represents and change the last updated time 
+	 	for(var i = 0; i < fields.length; i++) {
+         		var tempData = table.row(i).data();
+	 		tempData[1] = sqlToTable(output[timeField]); 
+         		table.row(i).data(tempData); 
+	 	}
+	 	finished = true; //check if ajax call is done so we can check before trying another
 		    
 }
 		
 });
-return finished; //whether or not we have finished retrieving the updated sensor values so we do not call another before the first is finished
+return finished; //whether or not we have finished retrieving the the most recent update time
 }
-//used for updating the sensor data in realtime. Asks for the last (lines) of the sql table and then changes the appropriate table columns when done
+//used for updating the last times of each table in realtime, will pass the output to the callback function when the query is done
 var currentUpdate = false;
 //calls for the first line of the RTC data time field
 function lastTimesQuery(callback) { 
@@ -192,7 +192,7 @@ function lastTimesQuery(callback) {
 return ret; //return the result of the ajax call
 }
 
-//calls for the first line of the RTC data time field
+//calls for the names of all tables in the database
 function tableNamesQuery(callback) { 
 	 ret = null;
 	 $.ajax({ url: "TableNameReq.php",
@@ -201,7 +201,7 @@ function tableNamesQuery(callback) {
          dataType: 'json',
 	 data: {arguments: []}, //no arguments needed for this
          success: function(output) {
-	 callback(output);
+	 	callback(output);
 	 
 		    
 }
@@ -210,7 +210,7 @@ function tableNamesQuery(callback) {
 return ret; //return the result of the ajax call
 }
 
-//calls for the first line of the RTC data time field
+//calls for the names of the daemon files
 function daemonFileQuery(callback) { 
 	 ret = null;
 	 $.ajax({ url: "DaemonFileReq.php",
@@ -219,7 +219,7 @@ function daemonFileQuery(callback) {
          dataType: 'json',
 	 data: {arguments: []}, //no arguments needed for this
          success: function(output) {
-	 callback(output);
+		 callback(output);
 	 
 		    
 }
@@ -228,7 +228,7 @@ function daemonFileQuery(callback) {
 return ret; //return the result of the ajax call
 }
 
-
+//writes the command value out to the command file associated with the table passed into the function
 function commandWrite(table, value) {
  ret = null;
 	 $.ajax({ url: "CommandWrite.php",
@@ -248,44 +248,34 @@ return ret; //return the result of the ajax call
 
 }
 
-var UNITS = { //Labels of the units that each sensor uses
-HumidityTemperature: "F",
-PressureTemperature: "F",
-Humidity: "% Saturation",
-HumidityHeatIndex: "F",
-Transducer: "mm",
-PressurePressure: "Hg/mm",
-PressureAlititude: "FT", 
-Temperature1: "F",
-
-};
 
 
-//converts the format that the SQL table uses to store time into a format used for the graph
+//converts the format that the SQL table uses to store time into a format used for the management table
 function sqlToTable(date) {
 
-return "".concat (date.substring(0,4), "-" , date.substring(4,6) ,"-" , date.substring(6,8) ," " ,date.substring(8,10) ,":" ,date.substring(10,12) ,":" ,date.substring(12,14));
+	return "".concat (date.substring(0,4), "-" , date.substring(4,6) ,"-" , date.substring(6,8) ," " ,date.substring(8,10) ,":" ,date.substring(10,12) ,":" ,date.substring(12,14));
+
 }
 
-//converts the format that the graph uses to display time to the format that our SQL table uses to store it
+//converts the format that the table uses to display time to the format that our SQL table uses to store it
 function tableToSql(date) {
 
-return "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
+	return "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
 
 }
 //conversion from the format that the slider uses to display time to the format our SQL table uses to store time
 function sliderToSql(date,time) {
 
-//have to do some formatting using concat and some nested condensed if elses
-return "".concat(date.getFullYear(),(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),((date.getDate()<10) ? '0' +date.getDate() : date.getDate()),time.substring(0,2),time.substring(3,5),time.substring(6,8));
-//return date.getFullYear();
+	//have to do some formatting using concat and some nested condensed if elses
+	return "".concat(date.getFullYear(),(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),((date.getDate()<10) ? '0' +date.getDate() : date.getDate()),time.substring(0,2),time.substring(3,5),time.substring(6,8));
+	//return date.getFullYear();
 }
 
 //conversion from the format that our sql table uses to store time to the format that the slider uses to display it
 function sqlToSlider(date) {
-var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
+	var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
 
-return new Date(formatted);
+	return new Date(formatted);
 }
 
 
@@ -296,30 +286,32 @@ var table;
 var tables = new Array();
 var daemonStatus;
 var lastTimes;
+/* The next couple of functions are really annoying to figure out if you are trying to read the sequentially so i will explain them here: 
+The tablesCallback is first called by the tableNamesQuery once the query is done, after this the daemonFileQueryCallback is called by daemon file query 
+in the tablesCallback function, and finally after this the lastTimesCallback is called once a lastTimesQuery is done and then the table is populated with all of the information 
+that these queries have obtained
+*/ 
+
 function lastTimesCallback(output) {
 lastTimes = output;
+//for each table in the database, add the rows to the table needed 
 for(var i = 0; i < tables.length; i++) {
-
-table.row.add( [
-tables[i],
-sqlToTable(lastTimes[tables[i]]),
-daemonStatus[tables[i]][0],
-daemonStatus[tables[i]][1],
-"<button class=graphbutton value =" +tables[i] +",6>Start</button>",
-"<button class=graphbutton value =" + tables[i] +",3>Stop</button>",
-"<button class=graphbutton value ="+ tables[i] + ",7>Start</button>",
-"<button class=graphbutton value =" +tables[i]+ ",0>Stop</button>",
+//add a row to the table containing the SQL table name, the last time that table updated, the status of the daemons associated with that table,
+//and buttons to start and stop each daemon
+	table.row.add( [
+		tables[i],
+		sqlToTable(lastTimes[tables[i]]),
+		daemonStatus[tables[i]][0],
+		daemonStatus[tables[i]][1],
+		"<button class=graphbutton value =" +tables[i] +",6>Start</button>",
+		"<button class=graphbutton value =" + tables[i] +",3>Stop</button>",
+		"<button class=graphbutton value ="+ tables[i] + ",7>Start</button>",
+		"<button class=graphbutton value =" +tables[i]+ ",0>Stop</button>",
 ]
 ).draw(true);
 }
 
 }
-//what happens when one of the graph buttons are clicked
-$('#sensorsTable tbody').on( 'click', 'button', function () {
-        //$.LoadingOverlay("show");
-	var temp = this.value.split(',');
-	commandWrite(temp[0],temp[1]);
-    } );
 
 function daemonFileQueryCallback(output) {
 daemonStatus = output;
@@ -331,6 +323,13 @@ tables = output;
 daemonFileQuery(daemonFileQueryCallback);
 }
 
+//what happens when one of the graph buttons are clicked
+$('#sensorsTable tbody').on( 'click', 'button', function () {
+        //$.LoadingOverlay("show");
+	var temp = this.value.split(',');
+	commandWrite(temp[0],temp[1]);
+    } );
+
 
 var doneUpdating = true; //check to tell whether the previous ajax requests to update the table are done so we don't have a ton running at once that we don't need
 setInterval(function(){ 
@@ -341,8 +340,14 @@ tableNamesQuery(runningTablesCallback);
 }
 }, 3000);
 
+/* The running callback functions basically work in the same way that the other 3 callbacks work except at the end in the runningLastTimesCallback we don't add new rows,
+but we just change the content of the rows that already exist to keep them current.
+the callback chain is started in the setInterval function above  
+*/ 
+
 function runningLastTimesCallback(output) {
  lastTimes = output;
+ //for all tables update the last update time and the daemon status for each row in the table
  for(var i = 0; i < tables.length; i++) {
          var tempData = table.row(i).data();
 	 tempData[1] = sqlToTable(lastTimes[tables[i]])
@@ -353,12 +358,12 @@ function runningLastTimesCallback(output) {
 doneUpdating = true;
 }
 function runningDaemonFileQueryCallback(output) {
-daemonStatus = output;
-lastTimesQuery(runningLastTimesCallback);
+	daemonStatus = output;
+	lastTimesQuery(runningLastTimesCallback);
 }
 function runningTablesCallback(output) {
-tables = output;
-daemonFileQuery(runningDaemonFileQueryCallback);
+	tables = output;
+	daemonFileQuery(runningDaemonFileQueryCallback);
 }
 
 //create the table frame and store in a variable for easy changes
@@ -376,6 +381,7 @@ daemonFileQuery(runningDaemonFileQueryCallback);
       //  } ]
     } );
 
+//start the chain of table name queries 
 tableNamesQuery(tablesCallback);
 
 //show the loading overlay on the website right before we start to pull values from the local database
@@ -383,10 +389,10 @@ $.LoadingOverlay("show");
 
 $.LoadingOverlay("hide");
 
-
+//function called when the go back button pressed to go back to the index page
 function goBack(){
-$.LoadingOverlay("show");
-window.location.href = 'index.html';
+	$.LoadingOverlay("show");
+	window.location.href = 'index.html';
 }
 
 </script>
