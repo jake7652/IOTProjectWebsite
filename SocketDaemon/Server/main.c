@@ -187,13 +187,13 @@ int main(int argc , char *argv[])
 
         //wait for an activity on one of the sockets , timeout is NULL ,
         //so wait indefinitely
-        printf("\n");
+       // printf("\n");
         activity = select( max_sd + 1 , &readfds , NULL , NULL , &tout);
-        printf("Loops: %d", loops);
-        printf("\n");
-        printf("Activity: %d", activity);
+       // printf("Loops: %d", loops);
+       // printf("\n");
+       // printf("Activity: %d", activity);
         loops++;
-        printf("\n");
+       // printf("\n");
         if ((activity < 0) && (errno!=EINTR))
         {
             printf("select error");
@@ -277,15 +277,19 @@ int main(int argc , char *argv[])
                     printf("\n");
                     //the result variable for the table check
                     MYSQL_RES *confresCheck;
+                    printf("BBBBBBBBBBBBBBBBBBBB \n");
                     //query to check if table exists
                     mysql_query(&con,checkQueryPtr);
+                    printf("BBBBBBBBBBBBBBBBBBBB \n");
                     //store the result of the table present check in the result variable
                     confresCheck = mysql_store_result(&con);
                     //if the client is attached to a valid table, then create files needed for it if they don't exist
                     //and or just send out the current command to the client
                     if(mysql_num_rows(confresCheck) != 0) {
+                        printf("AAAAAAA \n");
                         //copy over the table name into the buffer
                         strcpy(buffer,result[1]);
+                        printf("AAAAAAA \n");
                         //free the result
                         free(result);
                         //concat the table name onto the client dir
@@ -298,6 +302,7 @@ int main(int argc , char *argv[])
                                 break;
                             }
                         }
+                        printf("TWO \n");
                         //used to determine whether the necessary directory exists
                         struct stat st = {0};
                         //char array and pointer to hold path to the command file
@@ -338,6 +343,7 @@ int main(int argc , char *argv[])
                             fflush(commandFile);
                             fclose(commandFile);
                         }
+                        printf("THREE \n");
                         //if there is a valid table attached to client and dir exists, then we just read from command file and send command to client
                         commandFile = fopen(commandPathPt,"r");
                         char line[BUF_LEN+1] ="";
@@ -347,6 +353,7 @@ int main(int argc , char *argv[])
                         strcpy(line,fTrim(line));
                         fclose(commandFile);
                         //send command to client
+                        printf("FOUR \n");
                         send(sd, line,strlen(line),0);
                     } else {
                         //if client does not have a valid table, then free the result, close the socket, and wipe the tables index thing
@@ -372,7 +379,7 @@ int main(int argc , char *argv[])
             {
 
                 //check if incoming message has any contents, if not then disconnect the socket descriptor
-                if ((valread = read( sd , buffer, BUF_LEN)) <= 0)
+                if ((valread = read( sd , buffer, BUF_LEN)) <= 0 || client_socket[i]==0)
                 {
                     //Somebody disconnected , get his details and print
                     getpeername(sd , (struct sockaddr*)&address , \
@@ -391,9 +398,9 @@ int main(int argc , char *argv[])
                 {
 
 
-                    printf("Information recieved: ");
-                    printf(buffer);
-                    printf("\n");
+                   // printf("Information recieved: ");
+                   // printf(buffer);
+                   // printf("\n");
                     //set the string terminating NULL byte on the end
                     //of the data read
                     buffer[valread] = '\0';
@@ -414,12 +421,12 @@ int main(int argc , char *argv[])
                         //write to the daemon file
                         fprintf(daemonFile,tempBuff[(i2+1)]);
                         //print out the file and what was written to it
-                        printf("Daemon File: ");
-                        printf(daemonPathPt);
-                        printf("\n");
-                        printf("Status: ");
-                        printf(tempBuff[(i2+1)]);
-                        printf("\n");
+                       // printf("Daemon File: ");
+                       // printf(daemonPathPt);
+                       // printf("\n");
+                       // printf("Status: ");
+                       // printf(tempBuff[(i2+1)]);
+                       // printf("\n");
                         //flush the file stream and close the file
                         fflush(daemonFile);
                         fclose(daemonFile);
@@ -430,8 +437,8 @@ int main(int argc , char *argv[])
                     commandPathPt = strcat(commandPath,tables[i]);
                     commandPathPt = strcat(commandPath,commandFileName);
                     //print the command file path
-                    printf(commandPathPt);
-                    printf("\n \n");
+                    //printf(commandPathPt);
+                    //printf("\n \n");
                     //open the command file for reading
                     FILE * commandFile = fopen(commandPathPt,"r");
                     //get the first line of the commandFile and trim and copy it into a char array
