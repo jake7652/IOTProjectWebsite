@@ -18,6 +18,7 @@ char * fTrim (char s[]) {
   return s;
 }
 
+
 static int exec_prog(const char **argv)
 {
     pid_t   my_pid;
@@ -56,11 +57,11 @@ static int exec_prog(const char **argv)
 int main(int argc, char const *argv[])
 {
     //line of the sql settings file
-    char line [BUF_LEN] = "";
+    char line [BUF_LEN+1] = "";
     //all lines of the sql settings file
-    char file [10][BUF_LEN];
+    char file [10][BUF_LEN+1];
     //table that this pi is set to write to in the SQL settings file
-    char table[BUF_LEN] = "";
+    char table[BUF_LEN+1] = "";
     //File to store the settings for the database
     FILE *plist = fopen("/var/www/databaseSettings", "r");
 
@@ -80,7 +81,7 @@ int main(int argc, char const *argv[])
         strcpy(table, fTrim(line));
         i++;
     }
-    //addresss of the socket on this client
+    //address of the socket on this client
     struct sockaddr_in address;
     //sock status and read var
     int sock = 0, valread;
@@ -89,19 +90,20 @@ int main(int argc, char const *argv[])
     //name of the table that this client writes to
     char *hello = file[4];
     //buffer that the socket reads into
-    char buffer[BUF_LEN] = {0};
-    //create the socket on the local machine
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        printf("\n Socket creation error \n");
-        return -1;
-    }
+    char buffer[BUF_LEN+1] = {0};
+
     //0 out the server address in memory
     memset(&serv_addr, '0', sizeof(serv_addr));
     //set the socket family and port
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
+    //create the socket on the local machine
+    if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        printf("\n Socket creation error \n");
+        return -1;
+    }
     // Convert IPv4 and IPv6 addresses from text to binary form
     while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
     {
@@ -115,12 +117,12 @@ int main(int argc, char const *argv[])
 
     }
     //char array and pointer to keep track of current command value
-    char commandMonitor[BUF_LEN];
+    char commandMonitor[BUF_LEN+1];
     char * commandMonitorPtr =strcpy(commandMonitor,"");
     //infinite loop
     while(1) {
         //temp string for building the message that is sent to the socket server
-        char lineTemp[BUF_LEN] = "";
+        char lineTemp[BUF_LEN+1] = "";
         //append valid onto the start of the message string so the server can separate our message from others
         char *lineTempPt = strcpy(lineTemp,"VALID,");
         //append the table onto the message
@@ -152,13 +154,21 @@ int main(int argc, char const *argv[])
         sleep(1);
         //if we did not read anything, then there is a error with the server
         if(valread <= 0) {
+
             //print out that we had a error
             printf("Server has gone away");
             printf("\n");
             //close the socket
             close(sock);
+
+            //0 out the server address in memory
+            memset(&serv_addr, '0', sizeof(serv_addr));
+            //set the socket family and port again since we probably need to change the port
+            serv_addr.sin_family = AF_INET;
+            serv_addr.sin_port = htons(PORT);
+
             //recreate the socket and attempt to recreate every second
-            while ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            while ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
                 printf("\n Socket creation error \n");
                 sleep(1);
             }
