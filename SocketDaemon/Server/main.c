@@ -105,7 +105,7 @@ int main(int argc , char *argv[])
     const char clientFileNames[2][BUF_LEN] = {"Sensor Daemon Status","SQL Daemon Status"};
     //set of socket descriptors
     fd_set readfds;
-    char  tables[30][BUF_LEN];
+    char  tables[30][BUF_LEN+1];
     //a message
     char *message = "ECHO Daemon v1.0 \r\n";
 
@@ -190,6 +190,8 @@ int main(int argc , char *argv[])
         printf("\n");
         activity = select( max_sd + 1 , &readfds , NULL , NULL , &tout);
         printf("Loops: %d", loops);
+        printf("\n");
+        printf("Activity: %d", activity);
         loops++;
         printf("\n");
         if ((activity < 0) && (errno!=EINTR))
@@ -226,7 +228,7 @@ int main(int argc , char *argv[])
                 }
             }
             //buffer to read in whatever the client sends to us
-            char buffer[BUF_LEN];  //data buffer of 2K
+            char buffer[BUF_LEN+1];  //data buffer of 2K
             //read in whatever the client is sending out
             valread = read( sd , buffer, BUF_LEN);
 
@@ -252,16 +254,16 @@ int main(int argc , char *argv[])
                 else
                 {
                     //temp file location string for holding the client files dir and paths
-                    char tempLoc[BUF_LEN] = "";
+                    char tempLoc[BUF_LEN+1] = "";
                     char * tempLocPt;
                     tempLocPt = strcpy(tempLoc,clientsLoc);
 
                     //set the string terminating NULL byte on the end
                     //of the data read
                     buffer[valread] = '\0';
-                    char tempBuff[BUF_LEN];
+                    char tempBuff[BUF_LEN+1];
 
-                    char checkQuery[255];
+                    char checkQuery[BUF_LEN+1];
                     //pointer to the check query string so that i can print it out without seg faulting
                     char *checkQueryPtr;
                     //build the check query string
@@ -300,7 +302,7 @@ int main(int argc , char *argv[])
                         struct stat st = {0};
                         //char array and pointer to hold path to the command file
                         //and append the command file path onto them
-                        char commandPath[BUF_LEN] = "";
+                        char commandPath[BUF_LEN+1] = "";
                         char * commandPathPt = strcpy(commandPath,tempLocPt);
                         commandPathPt = strcat(commandPath,commandFileName);
                         //file pointer for the command file
@@ -314,7 +316,7 @@ int main(int argc , char *argv[])
                             //loop to create the daemons files in the dir
                             for(int i = 0; i<clientFiles-1; i++) {
                                 //holds the file location
-                                char tempFileLoc[BUF_LEN] = "";
+                                char tempFileLoc[BUF_LEN+1] = "";
                                 char * tempFileLocPt;
                                 //concat the file location
                                 tempFileLocPt = strcpy(tempFileLoc,tempLoc);
@@ -338,7 +340,7 @@ int main(int argc , char *argv[])
                         }
                         //if there is a valid table attached to client and dir exists, then we just read from command file and send command to client
                         commandFile = fopen(commandPathPt,"r");
-                        char line[BUF_LEN] ="";
+                        char line[BUF_LEN+1] ="";
                         //get the first line of the command file
                         fgets(line,sizeof(line),commandFile);
                         //copy trimmed line into the line var
@@ -362,7 +364,7 @@ int main(int argc , char *argv[])
         for (int i = 0; i < max_clients; i++)
         {
             //buffer for storing the read on the socket
-            char buffer[BUF_LEN];
+            char buffer[BUF_LEN+1];
             //running socket descriptor
             sd = client_socket[i];
             //if the socket descriptor is not 0, then we read
@@ -394,17 +396,17 @@ int main(int argc , char *argv[])
                     printf("\n");
                     //set the string terminating NULL byte on the end
                     //of the data read
-                    buffer[valread+1] = '\0';
+                    buffer[valread] = '\0';
                     //split the read by the commas
                     char ** tempBuff = splitString(buffer);
                     //store the path of the client directory associated with this table
-                    char tablePath[BUF_LEN] = "";
+                    char tablePath[BUF_LEN+1] = "";
                     char * tablePathPt = strcpy(tablePath,tables[i]);
 
                     //loop through client files and write various parts of the read message to those file
                     for(int i2 = 1; i2 < clientFiles; i2++) {
                         //store the path of one daemon file
-                        char daemonPath[BUF_LEN];
+                        char daemonPath[BUF_LEN+1];
                         char * daemonPathPt = strcpy(daemonPath,tablePath);
                         daemonPathPt = strcat(daemonPath,clientFileNames[i2-1]);
                         //open the daemon file for writing
@@ -423,7 +425,7 @@ int main(int argc , char *argv[])
                         fclose(daemonFile);
                     }
                     //store the command file path
-                    char commandPath[BUF_LEN] = "";
+                    char commandPath[BUF_LEN+1] = "";
                     char * commandPathPt;
                     commandPathPt = strcat(commandPath,tables[i]);
                     commandPathPt = strcat(commandPath,commandFileName);
@@ -433,7 +435,7 @@ int main(int argc , char *argv[])
                     //open the command file for reading
                     FILE * commandFile = fopen(commandPathPt,"r");
                     //get the first line of the commandFile and trim and copy it into a char array
-                    char line[BUF_LEN] ="";
+                    char line[BUF_LEN+1] ="";
                     fgets(line,sizeof(line),commandFile);
                     strcpy(line,fTrim(line));
                     //flush and close the file
