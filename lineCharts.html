@@ -135,16 +135,20 @@ float:left;
 
 <!-- fieldset encompassing the slider, and the elements associated with the slider -->
 <fieldset>
+
 <!-- top right header for the slider section -->
 <legend>Slide for custom timerange for graph</legend>
+
 <!-- slider label div making the first "line" of the slider fieldset -->
 <div style="width:100%">
+
 <!-- paragraph containing the label for the slider -->
 <p>
   <label for="amount">Date range:</label>
   <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
 </p>
 </div>
+
 <!-- Slider div -->
 <div id="slider-range" class="divLeft"></div>
 
@@ -168,10 +172,12 @@ float:left;
 <legend>Select custom timerange to graph(yyyy-mm-dd hh:mm:ss 24hour format)</legend> 
 <!-- Start input box -->
 <input type="text" id='start_time' placeholder="Start Date"/>
+
 <!-- Span inline separator -->
 <span>
 TO
 </span>
+
 <!-- End input box -->
 <input type='text' id='end_time' placeholder="End Date">
 
@@ -237,7 +243,7 @@ Temperature1: "Water Temperature(F)",
 
 var sensor = ["PressureTemperature"];
 if(sessionStorage.getItem('sensor') != null) {
-sensor = sessionStorage.getItem('sensor').split(",");
+	sensor = sessionStorage.getItem('sensor').split(",");
 } 
 
 
@@ -249,11 +255,11 @@ sessionStorage.setItem('Table', 'DataTable');
 
 //converts the format that the table uses to display time to the format that our SQL table uses to store it
 function plotToSql(date) {
-var ret = "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
-if(date.length == 10) {
-ret = ret.concat("000000");
-} 
-return ret;
+	var ret = "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
+	if(date.length == 10) {
+		ret = ret.concat("000000");
+	} 
+	return ret;
 }
 
 var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
@@ -284,7 +290,7 @@ function tableNamesQuery(callback) {
          dataType: 'json',
 	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
          success: function(output) {
-	 callback(output);
+	 	callback(output);
 	 
 		    
 }
@@ -299,286 +305,295 @@ var currentFields; //used to keep track of what is currently graphed so that I c
 //draw the plots at plotName dive for the given array of fields and given time domain
 function drawPlots(fields,plotName,domain,realtime) {
 
-$.LoadingOverlay("show");
-currentFields = fields;
-var query;
+	$.LoadingOverlay("show");
+	currentFields = fields;
+	var query;
 
 
 
 
-function queryCallback(result) {
+	function queryCallback(result) {
 
 
 
-query = result;
+		query = result;
 
-var temps = query.data; //all y data for each plot, arrays of arrays, each one being all values from one field.
-var dates = query.time; //all x data for each plot in one array.
-var maxDate = dates[dates.length-1]; //legacy previously used for domain, but now domain is predefined in the domain parameter
-var maxTemp = 0; //legacy previously used for ranges, but now ranges are predefined in MIN_MAX
-//loop to properly format date for the plots
-for(var i = 0; i < dates.length; i++) {
-//legacy used for ranges, but now not needed since they are predefined
-if(temps[0][i] > maxTemp) {
-maxTemp = temps[i];
-}
-//assemble formatted date in a temp variable then store it in the date array
-var tempDate = "";
-tempDate = tempDate.concat (dates[i].substring(0,4), "-" , dates[i].substring(4,6) ,"-" , dates[i].substring(6,8) ," " ,dates[i].substring(8,10) ,":" 
-,dates[i].substring(10,12) ,":" ,dates[i].substring(12,14));
-dates[i] = tempDate;
-}
-//start of labels for the x and y axis anchors
-var x_axis = 'x';
-var y_axis = 'y';
-//traces used in the plot. Each index is a object representing one field's y and x data
-var traces = new Array();
-//layout for the plot for the format of each subplot
-var layout = {};
-//number of rows and cols of subplots 
-var num_rows;
-var num_cols;
-//if we wanted to draw 3 graphs then we would have 2 rows and 2 cols for graphs with the last col empty
-//determine the number of rows and cols of subgraphs
-num_rows = Math.floor(Math.sqrt(fields.length));
-num_cols = Math.ceil(Math.sqrt(fields.length));
-if((num_rows*num_cols) < fields.length) {
-num_rows++;
-}
+		var temps = query.data; //all y data for each plot, arrays of arrays, each one being all values from one field.
+		var dates = query.time; //all x data for each plot in one array.
+		var maxDate = dates[dates.length-1]; //legacy previously used for domain, but now domain is predefined in the domain parameter
+		var maxTemp = 0; //legacy previously used for ranges, but now ranges are predefined in MIN_MAX
+		//loop to properly format date for the plots
+		for(var i = 0; i < dates.length; i++) {
+			//legacy used for ranges, but now not needed since they are predefined
+			if(temps[0][i] > maxTemp) {
+				maxTemp = temps[i];
+			}
+			//assemble formatted date in a temp variable then store it in the date array
+			var tempDate = "";
+			tempDate = tempDate.concat (dates[i].substring(0,4), "-" , dates[i].substring(4,6) ,"-" , dates[i].substring(6,8) ," " ,dates[i].substring(8,10) ,":" 
+			,dates[i].substring(10,12) ,":" ,dates[i].substring(12,14));
+			dates[i] = tempDate;
+		}
+		//start of labels for the x and y axis anchors
+		var x_axis = 'x';
+		var y_axis = 'y';
+		//traces used in the plot. Each index is a object representing one field's y and x data
+		var traces = new Array();
+		//layout for the plot for the format of each subplot
+		var layout = {};
+		//number of rows and cols of subplots 
+		var num_rows;
+		var num_cols;
+		//if we wanted to draw 3 graphs then we would have 2 rows and 2 cols for graphs with the last col empty
+		//determine the number of rows and cols of subgraphs
+		num_rows = Math.floor(Math.sqrt(fields.length));
+		num_cols = Math.ceil(Math.sqrt(fields.length));
+		if((num_rows*num_cols) < fields.length) {
+			num_rows++;
+		}
 
-//gaps between each subgraph(in percent of the size of the encapsulating div) to give space for axis labels and other graph elements
-var row_gap = .2;
-var col_gap = .11;
+		//gaps between each subgraph(in percent of the size of the encapsulating div) to give space for axis labels and other graph elements
+		var row_gap = .2;
+		var col_gap = .11;
 
-//running variables to keep track of the current row and col of the subgraph that is being formatted
-var row = 0.0;
-var col = 0.0;
-//start i at 0 and go through each field, making a graph for each one 
-for(var i = 0; i < fields.length; i++) {
-//determine current row and col in relation to I
-row = Math.floor(i/num_cols);
-col = Math.floor(i%num_cols);
-//variable to store in the traces array, done for each subgraph
-var tempTrace;
-//for the first subgraph we don't need a xaxis and yaxis label, but for every other subgraph we need one to anchor it
-if(i == 0) {
-//trace for the first subgraph
-tempTrace = {
-  x: dates,
-  y: temps[i],
-  type: 'scatter',
-  name: fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
-  connectgaps: true,
+		//running variables to keep track of the current row and col of the subgraph that is being formatted
+		var row = 0.0;
+		var col = 0.0;
+		//start i at 0 and go through each field, making a graph for each one 
+		for(var i = 0; i < fields.length; i++) {
+			//determine current row and col in relation to I
+			row = Math.floor(i/num_cols);
+			col = Math.floor(i%num_cols);
+			//variable to store in the traces array, done for each subgraph
+			var tempTrace;
+			//for the first subgraph we don't need a xaxis and yaxis label, but for every other subgraph we need one to anchor it
+			if(i == 0) {
+				//trace for the first subgraph
+				tempTrace = {
+  					x: dates,
+  					y: temps[i],
+  					type: 'scatter',
+  					name: fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
+  					connectgaps: true,
 
-};
-} else {
-//trace for every subgraph but the first
-tempTrace = {
-  x: dates,
-  y: temps[i],
-  xaxis: x_axis.concat((i+1).toString()),
-  yaxis: y_axis.concat((i+1).toString()),
-  type: 'scatter',
-  name: fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
-  connectgaps: true,
-};
-}
-traces[i] = tempTrace;
-//layout is slightly different for the first subgraph and the others since we can just call the first 'xaxis' and 'yaxis',
-//but the others have i+1 concat onto the end of that
-if(i == 0) {
-//make the new objects for the x and y axis for the first subgraph
-layout['xaxis'] = {};
-layout['yaxis'] = {};
-//the buttons at the top of the first subgraph for selecting predefined ranges of data
-layout['xaxis']['rangeselector'] = {buttons: [
-    { count: 1,  
-    label: '24hrs', //last 24 hours button
-    step: 'day',
-    stepmode: 'backward'
-    },
-    { count: 7, 
-    label: '1 week', //last week button
-    step: 'day',
-    stepmode: 'backward'
-    },
-    {
-    count: 1,
-    label: '1 month', //last month button
-    step: 'month',
-    stepmode: 'backward'
-    },
-    {step: 'all'} //all data button
-    ]};
-//layout['xaxis']['rangeslider'] = {range: domain, height: 5};
-//layout['xaxis']['type'] = 'date';
-layout['xaxis']['domain'] = [0,(1.0/num_cols-col_gap)]; //set the width constraint of the first graph
-layout['yaxis']['domain'] = [0,(1.0/num_rows-row_gap)]; //set the height constraint of the first graph
-layout['xaxis']['range'] = domain; //set the domain or min and max values of the xaxis for the first graph
-layout['yaxis']['range'] = MIN_MAX[fields[i]]; //set min and max values for the yaxis of the first graph
-//layout['xaxis']['autorange'] = false; // by default do not autoscale the graph
-//layout['yaxis']['autorange'] = false; // by default do not autoscale the graph
-layout['yaxis']['title'] = LABELS[fields[i]]; //set the label on the yaxis for the first graph
-layout['xaxis']['title'] = "Date"; //set the label for the xaxis of the first graph
+				};
+			} else {
+				//trace for every subgraph but the first
+				tempTrace = {
+  					x: dates,
+  					y: temps[i],
+  					xaxis: x_axis.concat((i+1).toString()),
+  					yaxis: y_axis.concat((i+1).toString()),
+  					type: 'scatter',
+  					name: fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
+  					connectgaps: true,
+				};
+			}
+			traces[i] = tempTrace;
+			//layout is slightly different for the first subgraph and the others since we can just call the first 'xaxis' and 'yaxis',
+			//but the others have i+1 concat onto the end of that
+			if(i == 0) {
+				//make the new objects for the x and y axis for the first subgraph
+				layout['xaxis'] = {};
+				layout['yaxis'] = {};
+				//the buttons at the top of the first subgraph for selecting predefined ranges of data
+				layout['xaxis']['rangeselector'] = {buttons: [
+    					{ 
+						count: 1,  
+    						label: '24hrs', //last 24 hours button
+    						step: 'day',
+    						stepmode: 'backward'
+    					},
+    					{ 
+						count: 7, 
+    						label: '1 week', //last week button
+    						step: 'day',
+    						stepmode: 'backward'
+    					},
+    					{
+   						 count: 1,
+   						 label: '1 month', //last month button
+    						 step: 'month',
+    						 stepmode: 'backward'
+    					},
+    					{
+						step: 'all'
+					} //all data button
+    				]};
+			    //layout['xaxis']['rangeslider'] = {range: domain, height: 5};
+			    //layout['xaxis']['type'] = 'date';
+			    layout['xaxis']['domain'] = [0,(1.0/num_cols-col_gap)]; //set the width constraint of the first graph
+			    layout['yaxis']['domain'] = [0,(1.0/num_rows-row_gap)]; //set the height constraint of the first graph
+			    layout['xaxis']['range'] = domain; //set the domain or min and max values of the xaxis for the first graph
+			    layout['yaxis']['range'] = MIN_MAX[fields[i]]; //set min and max values for the yaxis of the first graph
+			    //layout['xaxis']['autorange'] = false; // by default do not autoscale the graph
+			    //layout['yaxis']['autorange'] = false; // by default do not autoscale the graph
+			    layout['yaxis']['title'] = LABELS[fields[i]]; //set the label on the yaxis for the first graph
+			    layout['xaxis']['title'] = "Date"; //set the label for the xaxis of the first graph
 
-} else {
-let yAx ='yaxis'.concat((i+1).toString()); //yaxis object 
-let xAx = 'xaxis'.concat((i+1).toString()); //xaxis object
-layout[yAx] = {}; //make the yaxis object for every other graph than the first
-layout[xAx] = {}; //make the xaxis object for graphs other than the first
-//preset range buttons at top of graph
-layout[xAx]['rangeselector'] = {buttons: [
-    { count: 1,
-    label: '24hrs', //last day button
-    step: 'day',
-    stepmode: 'backward'
-    },
-    { count: 7,
-    label: '1 week', //last week button
-    step: 'day',
-    stepmode: 'backward'
-    },
-    {
-    count: 1,
-    label: '1 month', //last month button
-    step: 'month',
-    stepmode: 'backward'
-    },
-    {step: 'all'} //all data button
-    ]};
-//layout[xAx]['rangeslider'] = {range: domain, height: 5};
-//layout[xAx]['type'] = 'date';
-if(row == fields.length-1) { 
-layout[yAx]['domain'] = [((num_rows-1.0)/num_rows),1]; //for the last row the y constraint does not need the row gap
-} else {
-layout[yAx]['domain'] = [(row/num_rows),(((row+1)/num_rows)-row_gap)]; //for every other row the y constraint needs the row gap
-}
+		   } else {
+			let yAx ='yaxis'.concat((i+1).toString()); //yaxis object 
+			let xAx = 'xaxis'.concat((i+1).toString()); //xaxis object
+			layout[yAx] = {}; //make the yaxis object for every other graph than the first
+			layout[xAx] = {}; //make the xaxis object for graphs other than the first
+			//preset range buttons at top of graph
+			layout[xAx]['rangeselector'] = {buttons: [
+    			{ 
+				count: 1,
+    				label: '24hrs', //last day button
+    				step: 'day',
+    				stepmode: 'backward'
+    			},
+    			{ 
+				count: 7,
+    				label: '1 week', //last week button
+    				step: 'day',
+    				stepmode: 'backward'
+    			},
+    			{
+    				count: 1,
+    				label: '1 month', //last month button
+    				step: 'month',
+    				stepmode: 'backward'
+    			},
+    			{
+				step: 'all'
+			} //all data button
+    		    ]};
+		    //layout[xAx]['rangeslider'] = {range: domain, height: 5};
+		    //layout[xAx]['type'] = 'date';
+		    if(row == fields.length-1) { 
+			layout[yAx]['domain'] = [((num_rows-1.0)/num_rows),1]; //for the last row the y constraint does not need the row gap
+		    } else {
+			layout[yAx]['domain'] = [(row/num_rows),(((row+1)/num_rows)-row_gap)]; //for every other row the y constraint needs the row gap
+		    }
 
-if(col == fields.length-1) {
-layout[xAx]['domain'] = [(((num_cols-1.0)/num_cols)+col_gap),1]; //for the last column the x constraint does not need the col gap
-} else {
-layout[xAx]['domain'] = [(col/num_cols),(((col+1)/num_cols)-col_gap)]; //for every other col the x constraint does need the col gap
-}
+		    if(col == fields.length-1) {
+			layout[xAx]['domain'] = [(((num_cols-1.0)/num_cols)+col_gap),1]; //for the last column the x constraint does not need the col gap
+		    } else {
+			layout[xAx]['domain'] = [(col/num_cols),(((col+1)/num_cols)-col_gap)]; //for every other col the x constraint does need the col gap
+		    }
 
-layout[xAx]['range'] = domain; //set the min and max x values for all subplots but the first
-layout[xAx]['anchor'] = y_axis.concat((i+1).toString()); //set the x anchor of the subplot
-layout[yAx]['anchor'] = x_axis.concat((i+1).toString()); //set the y anchor of the subplot
-layout[yAx]['range'] = MIN_MAX[fields[i]]; //set the min and max values of the y axis of the subplot
-//layout[xAx]['autorange'] = false; //by default the subplot does not autoscale
-//layout[yAx]['autorange'] = false; //by default the subplot does not autoscale
-layout[yAx]['title'] = LABELS[fields[i]]; //set the label of the y axis 
-layout[xAx]['title'] = "Date"; //set the label of the x axis
-
-
-}
-
-}
-//if we are only graphing one field then we can set a title for the whole graph, but otherwise do not do so
-if(fields.length == 1) {
-layout['title'] = fields[0].split(/(?=[A-Z][a-z])/).join(" ");
-}
-
-//set the size of the graph area. This helps for when the graph is downloaded as a png so the image is the proper resolution.
-layout['autosize'] = false; 
-layout['width'] = windowWidth*.9; //I found that expanding it out to 100% would make the webpage slightly too wide with the encompassing fieldset
-layout['height'] = (windowHeight*.8); //the 5% difference here from the div's height is intentional to prevent the graph from cutting off text under it 
-
-//Draw a new plot every time there is a call made to the function. 
-//React is more efficient but I was experiencing some unusual behavior with the subplots when using it so I had to use newPlot instead
-//the 4th argument hides the logo in the modebar, tells it to always be displayed, and removes autoscale since it does not work
-Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,modeBarButtonsToRemove: ['autoScale2d']}); 
+		    layout[xAx]['range'] = domain; //set the min and max x values for all subplots but the first
+		    layout[xAx]['anchor'] = y_axis.concat((i+1).toString()); //set the x anchor of the subplot
+		    layout[yAx]['anchor'] = x_axis.concat((i+1).toString()); //set the y anchor of the subplot
+		    layout[yAx]['range'] = MIN_MAX[fields[i]]; //set the min and max values of the y axis of the subplot
+		    //layout[xAx]['autorange'] = false; //by default the subplot does not autoscale
+		    //layout[yAx]['autorange'] = false; //by default the subplot does not autoscale
+		    layout[yAx]['title'] = LABELS[fields[i]]; //set the label of the y axis 
+		    layout[xAx]['title'] = "Date"; //set the label of the x axis
 
 
-//realtime updater of the plot 
-function getFromSqlUpdater(fields,lines,domain,async) {
-ajaxCalls[ajaxCalls.length] =
-	 $.ajax({ url: "sqlMultReq.php",
-         async: async,
-	 type: "POST",
-         dataType: 'json',
-	 data: {arguments: [fields,lines,plotToSql(domain[0]),plotToSql(domain[1]),sessionStorage.getItem('Table')]},
-         success: function(output) {
-	 var newTemps = output.data;	 
-	 var newDates = output.time;
-	 var update = false; //says whether or not there are new dates in database
-	 var x_update = new Array();
-	 var y_update = new Array();
-	 for(var i = 0; i < newTemps.length; i++) {
-	 y_update[i] = new Array();
-	 }
-	 //check to see if we do indeed have some new dates in the database and if there is some then we add them to the x_update and y_update arrays
-	 for(var i = 0; i < newDates.length; i++){
-	 if(parseInt(newDates[i]) > parseInt(maxDate)) {
-	 maxDate = newDates[i];
-	 update = true;
-	 var tempDate = "";
-	 tempDate = tempDate.concat (newDates[i].substring(0,4), "-" , newDates[i].substring(4,6) ,"-" , newDates[i].substring(6,8) ," " ,newDates[i].substring(8,10) ,":" 
-	 ,newDates[i].substring(10,12) ,":" ,newDates[i].substring(12,14));
+	           }
+
+	        } //end massive graph populator loop
+		//if we are only graphing one field then we can set a title for the whole graph, but otherwise do not do so
+		if(fields.length == 1) {
+			layout['title'] = fields[0].split(/(?=[A-Z][a-z])/).join(" ");
+		}
+
+		//set the size of the graph area. This helps for when the graph is downloaded as a png so the image is the proper resolution.
+		layout['autosize'] = false; 
+		layout['width'] = windowWidth*.9; //I found that expanding it out to 100% would make the webpage slightly too wide with the encompassing fieldset
+		layout['height'] = (windowHeight*.8); //the 5% difference here from the div's height is intentional to prevent the graph from cutting off text under it 
+
+		//Draw a new plot every time there is a call made to the function. 
+		//React is more efficient but I was experiencing some unusual behavior with the subplots when using it so I had to use newPlot instead
+		//the 4th argument hides the logo in the modebar, tells it to always be displayed, and removes autoscale since it does not work
+		Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,modeBarButtonsToRemove: ['autoScale2d']}); 
+
+
+		//realtime updater of the plot 
+		function getFromSqlUpdater(fields,lines,domain,async) {
+			ajaxCalls[ajaxCalls.length] =
+	 			$.ajax({ url: "sqlMultReq.php",
+         			async: async,
+	 			type: "POST",
+         			dataType: 'json',
+	 			data: {arguments: [fields,lines,plotToSql(domain[0]),plotToSql(domain[1]),sessionStorage.getItem('Table')]},
+         			success: function(output) {
+	 				var newTemps = output.data;	 
+	 				var newDates = output.time;
+	 				var update = false; //says whether or not there are new dates in database
+	 				var x_update = new Array();
+					var y_update = new Array();
+	 				for(var i = 0; i < newTemps.length; i++) {
+	 					y_update[i] = new Array();
+	 				}
+	 				//check to see if we do indeed have some new dates in the database and if there is some then we add them to the x_update and y_update arrays
+	 				for(var i = 0; i < newDates.length; i++){
+	 					if(parseInt(newDates[i]) > parseInt(maxDate)) {
+	 						maxDate = newDates[i];
+	 						update = true;
+	 						var tempDate = "";
+	 						tempDate = tempDate.concat (newDates[i].substring(0,4), "-" , newDates[i].substring(4,6) ,"-" , newDates[i].substring(6,8) ," " ,newDates[i].substring(8,10) ,":" 
+	 						,newDates[i].substring(10,12) ,":" ,newDates[i].substring(12,14));
 	 
-	 //We might be reading multiple sensors at a time so make sure to grab every updated value and store in the array.
- 	 //i2 = sensor, i = row
- 	 for(var i2 = 0; i2 < newTemps.length; i2++){
-	 y_update[i2][y_update[i2].length] = newTemps[i2][i];
-	 }
-	 x_update[x_update.length] = tempDate;
+	 						//We might be reading multiple sensors at a time so make sure to grab every updated value and store in the array.
+ 	 						//i2 = sensor, i = row
+ 	 						for(var i2 = 0; i2 < newTemps.length; i2++){
+	 							y_update[i2][y_update[i2].length] = newTemps[i2][i];
+	 						}
+	 					x_update[x_update.length] = tempDate;
 	
 	  
-	}
-	}
-	//clone over the date array for every sensor and make a extendtraces array for the update function
-	var tracesArr = new Array();
-	var x_mult_update = new Array();
-  	for(var i = 0; i < newTemps.length; i++) {
-	tracesArr[i] = i;
-	x_mult_update[i] = x_update;
-	}
-	//if we have some updated points to draw on the graph then we store them in a variable and tell the graph to update
-	if(update == true) {
-	var updated_points = {
-	x: x_mult_update,
-	y: y_update,
-	} 
-	//now actually extend the traces to push the new points onto the graph
-	Plotly.extendTraces(plotName,updated_points,tracesArr);
+						}
+					}
+				//clone over the date array for every sensor and make a extendtraces array for the update function
+				var tracesArr = new Array();
+				var x_mult_update = new Array();
+  				for(var i = 0; i < newTemps.length; i++) {
+					tracesArr[i] = i;
+					x_mult_update[i] = x_update;
+				}
+				//if we have some updated points to draw on the graph then we store them in a variable and tell the graph to update
+				if(update == true) {
+					var updated_points = {
+						x: x_mult_update,
+						y: y_update,
+					} 
+					//now actually extend the traces to push the new points onto the graph
+					Plotly.extendTraces(plotName,updated_points,tracesArr);
 	
-	}
-                  }
+				} 
+                    	}
 		
-});
+		    });
 
-}
+		}
 
-//calls the function that is the first parameter for every second parameter millis
-interval = setInterval(function() {
+		//calls the function that is the first parameter for every second parameter millis
+		interval = setInterval(function() {
 
-if(domain.length == 0) {
+			if(domain.length == 0) {
 
-domain[0] = "0";
-domain[1] = "9999-99-99";
-}
+				domain[0] = "0";
+				domain[1] = "9999-99-99";
+			}
 
-//check against whether the graph calls for realtime updates before calling a ajax update 
-if(realtime) {
-//call the function that will attempt to poll for new points in the database
-//asks for the last 90 lines of the database asyncronously so that this does not freeze the website
-getFromSqlUpdater(fields,"90",domain,true);
-}
-
-
-
-},60000); //call the updater function every 60 seconds
+			//check against whether the graph calls for realtime updates before calling a ajax update 
+			if(realtime) {
+				//call the function that will attempt to poll for new points in the database
+				//asks for the last 90 lines of the database asyncronously so that this does not freeze the website
+				getFromSqlUpdater(fields,"90",domain,true);
+			}
 
 
-$.LoadingOverlay("hide");
-}
-if(domain.length == 0) {
-domain[0] = "0";
-domain[1] = "9999-99-99";
-getFromSql(fields,"0",domain,queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
-domain = [];
-} else {
-getFromSql(fields,"0",domain,queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
-}
+
+		},60000); //call the updater function every 60 seconds
+
+
+		$.LoadingOverlay("hide");
+
+	} //end the queryCallback function
+	if(domain.length == 0) {
+		domain[0] = "0";
+		domain[1] = "9999-99-99";
+		getFromSql(fields,"0",domain,queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
+		domain = [];
+	} else {
+		getFromSql(fields,"0",domain,queryCallback); //get all lines for the fields from the SQL database syncronously so that execution waits for script to be done
+	}
 
 
 
@@ -658,7 +673,7 @@ function firstTimeQuery(callback) {
          dataType: 'json',
 	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
          success: function(output) {
-	 callback(output);
+	 	callback(output);
 	 
 		    
 }
@@ -687,17 +702,17 @@ return ret; //return the result of the ajax call
 
 //conversion from the format that our sql table uses to store time to the format that the slider uses to display it
 function sqlToSlider(date) {
-var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
+	var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
 
-return new Date(formatted);
+	return new Date(formatted);
 }
 
 
 //conversion from the format that our slider uses to the format the plot uses
 function sliderToPlot(date) {
-return "".concat(date.getFullYear(),"-",(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),"-",((date.getDate()<10) ? '0' +date.getDate() : date.getDate()));
+	return "".concat(date.getFullYear(),"-",(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),"-",((date.getDate()<10) ? '0' +date.getDate() : date.getDate()));
 
-return new Date(formatted);
+	return new Date(formatted);
 }
 
 var firstDate = false;
@@ -708,35 +723,35 @@ var selectedMax = false;
 
 //callback run when the ajax call to get the first date in the local database is done
 function firstDateCallback(output) {
-firstDate = sqlToSlider(output["RTCDataTime"]);
-selectedMin = firstDate;
-//get the last date and call the lastDateCallback after we get the first date
-sliderSql("RTCDataTime",1,lastDateCallback);
+	firstDate = sqlToSlider(output["RTCDataTime"]);
+	selectedMin = firstDate;
+	//get the last date and call the lastDateCallback after we get the first date
+	sliderSql("RTCDataTime",1,lastDateCallback);
 }
 
 //called after the first date is set and we have the last date in the local database to setup the slider
 function lastDateCallback(output) {
-lastDate = sqlToSlider(output["RTCDataTime"]);
-selectedMax = new Date(lastDate.getTime() + 86400*1000);
-  $(function() {
-    $( "#slider-range" ).slider({
-      range: true,
-      min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000), //first date in millis with timezone accounted for
-      max: selectedMax.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000), //last date in millis with timezone accounted for
-      step: 1, //step is 1 millis for smoother scrolling
-      values: [ firstDate.getTime(), selectedMax.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000)], 
-      slide: function( event, ui ) { 
- 	//as we slide we have to update the slider label and the min and max 
-        $( "#amount" ).val( (new Date(ui.values[ 0 ]).toDateString() ) + " - " + (new Date(ui.values[ 1 ])).toDateString() );
-	selectedMin = new Date(ui.values[0]);
-	selectedMax = new Date(ui.values[1]);
-      }
-    });
-//set the default values of the label to the min and max date
-    $( "#amount" ).val( (new Date($( "#slider-range" ).slider( "values", 0 )).toDateString()) +
-      " - " + (new Date($( "#slider-range" ).slider( "values", 1 ))).toDateString());
-  });
-$.LoadingOverlay("hide"); //hide the loading overlay as we are done loading this 
+	lastDate = sqlToSlider(output["RTCDataTime"]);
+	selectedMax = new Date(lastDate.getTime() + 86400*1000);
+  		$(function() {
+   			 $( "#slider-range" ).slider({
+      				range: true,
+     				min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000), //first date in millis with timezone accounted for
+      				max: selectedMax.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000), //last date in millis with timezone accounted for
+      				step: 1, //step is 1 millis for smoother scrolling
+      				values: [ firstDate.getTime(), selectedMax.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000)], 
+      				slide: function( event, ui ) { 
+ 					//as we slide we have to update the slider label and the min and max 
+        				$( "#amount" ).val( (new Date(ui.values[ 0 ]).toDateString() ) + " - " + (new Date(ui.values[ 1 ])).toDateString() );
+					selectedMin = new Date(ui.values[0]);
+					selectedMax = new Date(ui.values[1]);
+      				}
+    			});
+		//set the default values of the label to the min and max date
+    		$( "#amount" ).val( (new Date($( "#slider-range" ).slider( "values", 0 )).toDateString()) +
+     		" - " + (new Date($( "#slider-range" ).slider( "values", 1 ))).toDateString());
+  	});
+	$.LoadingOverlay("hide"); //hide the loading overlay as we are done loading this 
 }
 
 firstTimeQuery(firstDateCallback);
@@ -744,18 +759,18 @@ firstTimeQuery(firstDateCallback);
 //function called when the user selectes the graph button next to the range slider
 function dateSlider() {
 
-//scroll to top of the page
-window.scrollTo(0,0);
-//abort all ajax calls
-    for(var i = 0; i < ajaxCalls.length; i++) {
-	ajaxCalls[i].abort();
-    }
-    ajaxCalls = [];
-    //stop the updater loop
-    clearInterval(interval);
-    //redraw the plot with the new start and end interval
-    //just call to draw new plot for the updated range
-    drawPlots(currentFields,"plot",[sliderToPlot(selectedMin),sliderToPlot(selectedMax)],false);
+	//scroll to top of the page
+	window.scrollTo(0,0);
+	//abort all ajax calls
+    	for(var i = 0; i < ajaxCalls.length; i++) {
+		ajaxCalls[i].abort();
+    	}
+    	ajaxCalls = [];
+    	//stop the updater loop
+    	clearInterval(interval);
+    	//redraw the plot with the new start and end interval
+    	//just call to draw new plot for the updated range
+    	drawPlots(currentFields,"plot",[sliderToPlot(selectedMin),sliderToPlot(selectedMax)],false);
 
 }
 
@@ -767,23 +782,23 @@ window.scrollTo(0,0);
 <script> 
 //callback populate the table selector dropdown menu
 function populateTables(tables) {
-//get the dropdown menu element
-select = document.getElementById('table_select');
-for (var i = 0; i < tables.length; i++){
+	//get the dropdown menu element
+	select = document.getElementById('table_select');
+	for (var i = 0; i < tables.length; i++){
 
-    //create a new option element
-    var opt = document.createElement('option');
-    //set the value of the option
-    opt.value = tables[i];
-    //set the display value of the option
-    opt.innerHTML = tables[i];
-    //append the option onto the select menu
-    select.appendChild(opt);
-    //set the default to the currently selected table
-    if(select.options[i].value == sessionStorage.getItem('Table')){
-    select.options[i].defaultSelected = true;
-    }
-}
+   		//create a new option element
+    		var opt = document.createElement('option');
+    		//set the value of the option
+    		opt.value = tables[i];
+    		//set the display value of the option
+   		opt.innerHTML = tables[i];
+    		//append the option onto the select menu
+    		select.appendChild(opt);
+    		//set the default to the currently selected table
+   		if(select.options[i].value == sessionStorage.getItem('Table')){
+    			select.options[i].defaultSelected = true;
+    		}
+	}
 //hide the loading overlay when we are done populating the selector
 $.LoadingOverlay("hide");
 }
@@ -794,20 +809,20 @@ tableNamesQuery(populateTables);
 
 //function called when we select a new table
 function changeTable(table) {
-//show loading overlay when we choose a new table
-$.LoadingOverlay("show");
-//set the table to the updated selection
-sessionStorage.setItem('Table', table);
-sessionStorage.setItem('sensor',currentFields);
-//scroll to top of the page when we select a new table
-window.scrollTo(0,0);
-//refresh the page after the table changes because i'm too lazy to bother functioniz-ing everything
-history.go(0); 
+	//show loading overlay when we choose a new table
+	$.LoadingOverlay("show");
+	//set the table to the updated selection
+	sessionStorage.setItem('Table', table);
+	sessionStorage.setItem('sensor',currentFields);
+	//scroll to top of the page when we select a new table
+	window.scrollTo(0,0);
+	//refresh the page after the table changes because i'm too lazy to bother functioniz-ing everything
+	history.go(0); 
 }
 
 function goBack(){
-$.LoadingOverlay("show");
-window.location.href = 'index.html';
+	$.LoadingOverlay("show");
+	window.location.href = 'index.html';
 }
 </script>
 
