@@ -160,6 +160,14 @@ int main(int argc, char const *argv[])
             printf("\n");
             //close the socket
             close(sock);
+            sock = 0;
+
+
+            //recreate the socket and attempt to recreate every second
+            while ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
+                printf("\n Socket creation error \n");
+                sleep(1);
+            }
 
             //0 out the server address in memory
             memset(&serv_addr, '0', sizeof(serv_addr));
@@ -167,11 +175,6 @@ int main(int argc, char const *argv[])
             serv_addr.sin_family = AF_INET;
             serv_addr.sin_port = htons(PORT);
 
-            //recreate the socket and attempt to recreate every second
-            while ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-                printf("\n Socket creation error \n");
-                sleep(1);
-            }
             // attempt to convert the ip address of the server and retry every second
             while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
             {
