@@ -8,6 +8,8 @@
 #include <my_global.h>
 #include <mysql.h>
 
+#include <pthread.h>
+
 //Modem Parameters
 #define BAUDRATE B9600
 #define MODEMDEVICE "/dev/ttyUSB0" /* Note rfcomm0 is Bluetooth SSP */
@@ -55,8 +57,54 @@ char * fTrim (char s[]) {
   return s;
 }
 
-main()
+//Status print thread. Separate thread so that the daemon does not slow down the print
+void *statusThread(void *vargp)
 {
+    printf("Sensor Update Daemon Running... [  ");
+    while(1) {
+    printf("\b\b|]");
+    fflush(stdout);
+    usleep(5000);
+    printf("\b\b/]");
+    fflush(stdout);
+    usleep(5000);
+    printf("\b\b-]");
+    fflush(stdout);
+    usleep(5000);
+    printf("\b\b\\]");
+    fflush(stdout);
+    usleep(5000);
+    fflush(stdout);
+    }
+
+    return NULL;
+}
+
+
+main(int argc, char ** argv)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+
+    printf("Daemon Started On: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    int DEBUG = 0;
+    //id for the status print thread
+    pthread_t *thread_id = malloc(sizeof(pthread_t));
+
+    if(argc > 1) {
+        if(strcmp(argv[1],"debug")==0) {
+            DEBUG = 1;
+
+
+        }
+    } else {
+        //pthread_yield();
+        pthread_create(thread_id,NULL,statusThread,NULL);
+        //pthread_create(&thread_id, NULL, statusThread, NULL);
+        //pthread_join(thread_id, NULL);
+
+    }
+
     const char * commandsFilePath = "/var/www/clients/commands";
     FILE * commandsFile = fopen(commandsFilePath,"w");
     fprintf(commandsFile, "4");
@@ -114,7 +162,9 @@ main()
     close(fd);
     sleep(1);
     fd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
+    if(DEBUG == 1) {
     perror(MODEMDEVICE);
+    }
     char error[255] = "";
     strcat(error,MODEMDEVICE);
     strcat(error, ": ");
@@ -164,7 +214,9 @@ main()
 
     if (con == NULL)
         {
-            fprintf(stderr, "%s\n", mysql_error(con));
+            if(DEBUG == 1) {
+                fprintf(stderr, "%s\n", mysql_error(con));
+            }
             exit(1);
         }
 
@@ -197,7 +249,7 @@ if(strcmp(line,stopCode)==0) {
     fflush(statusFile);
     fclose(statusFile);
 
-exit(0);
+    exit(0);
 
 
 
@@ -219,27 +271,31 @@ exit(0);
                 // res is the length of the packet
 
                 ValidPacket=TRUE;
-                printf("\n%s<+>%d<+>%d\n","Good Tide Guage Header",res, gcounter);
-                printf("\n%s\n", buf);
-
+                if(DEBUG == 1) {
+                    printf("\n%s<+>%d<+>%d\n","Good Tide Guage Header",res, gcounter);
+                    printf("\n%s\n", buf);
+                }
                 querybuf[0]='\0';
                 strcat(querybuf,querypart1);
-                sprintf(scounter,"%d",gcounter);
+                if(DEBUG == 1) {
+                    sprintf(scounter,"%d",gcounter);
+                }
                 strcat(querybuf,scounter);
                 strcat(querybuf,",");
                 strcat(querybuf,"\"");
                 strcat(querybuf,buf);
                 strcat(querybuf,"\")");
-
-                printf("%s\n",querybuf);
-
+                if(DEBUG == 1) {
+                    printf("%s\n",querybuf);
+                }
                 //Execute SQL INSERT
                 //if (mysql_query(con, querybuf))
                 //   {
                 //      finish_with_error(con);
                 //   }
-
-                printf("%s\n","++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                if(DEBUG == 1) {
+                    printf("%s\n","++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                }
                 gcounter++;
             }
 
@@ -249,9 +305,10 @@ exit(0);
 
                 //XX="INSERT INTO DataTab"
                 ValidPacket=TRUE;
-                printf("\n%s<+>%d<+>%d\n","Good Tide Guage Data",res, gcounter);
-                printf("\n%s\n", buf);
-
+                if(DEBUG == 1) {
+                    printf("\n%s<+>%d<+>%d\n","Good Tide Guage Data",res, gcounter);
+                    printf("\n%s\n", buf);
+                }
                 //querybuf[0]='\0';
                 //strcat(querybuf,querypart1);
                 //sprintf(scounter,"%d",gcounter);
@@ -263,10 +320,10 @@ exit(0);
 
                 //printf("%s\n",querybuf);
 
+                if(DEBUG == 1) {
+                    printf("%s\n","xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
-                printf("%s\n","xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-
-
+                }
                 char datainstr[255] = "";
                 char *datainstrtoken;
                 char *datainstrptr = datainstr;
@@ -320,16 +377,18 @@ exit(0);
                         datainstrcounter++;
                         keystrcounter++;
                     }
-
-                printf("%s\n",dataoutstr);printf("\n");
-
+                if(DEBUG == 1) {
+                    printf("%s\n",dataoutstr);printf("\n");
+                }
                 //Build SQL Statment
                 char sqlstatement [255] ="";
                 ptr = strcat (sqlstatement,queryheader);
                 ptr = strcat (sqlstatement,dataoutstr);
                 ptr = strcat (sqlstatement,querytail);
-                printf("%s\n",sqlstatement);
-                printf("\n");printf("\n");
+                if(DEBUG == 1) {
+                    printf("%s\n",sqlstatement);
+                    printf("\n");printf("\n");
+                }
 
                 //Execute SQL INSERT
                 if (mysql_query(con, sqlstatement))
@@ -341,9 +400,11 @@ exit(0);
                    {
                       finish_with_error(con);
                    }
-
-                printf("%s\n","++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                if(DEBUG == 1) {
+                    printf("%s\n","++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                }
                 gcounter++;
+
             }
         if (ValidPacket == FALSE)
             {
@@ -355,8 +416,10 @@ exit(0);
                 fd = open(MODEMDEVICE, O_RDWR | O_NOCTTY );
                 //set the attributes again
                 tcsetattr(fd,TCSANOW,&newtio);
-                //print out the error on the usb device
-                perror(MODEMDEVICE);
+                if(DEBUG == 1) {
+                    //print out the error on the usb device
+                    perror(MODEMDEVICE);
+                }
                 char error[255] = "";
                 strcat(error,MODEMDEVICE);
                 strcat(error, ": ");
@@ -366,9 +429,11 @@ exit(0);
                 fflush(statusFile);
                 fclose(statusFile);
                 //print out that it was bad and some other stuff
-                printf("%s\n","Bad");
-                printf("<+>%d<+>%d\n", res, bcounter);
-                printf("%s\n","------------------------------------------------------------");
+                if(DEBUG == 1) {
+                    printf("%s\n","Bad");
+                    printf("<+>%d<+>%d\n", res, bcounter);
+                    printf("%s\n","------------------------------------------------------------");
+                }
                 bcounter++;
             }
         tcounter++;                /* Increment count read since start */
