@@ -64,12 +64,28 @@ char * fTrim (char s[]) {
 
 int main(int argc , char *argv[])
 {
-
+//    printf("processing[  ");
+//    while(1) {
+//    printf("\b\b|]");
+//    fflush(stdout);
+//    usleep(5000);
+//    printf("\b\b/]");
+//    fflush(stdout);
+//    usleep(5000);
+//    printf("\b\b-]");
+//    fflush(stdout);
+//    usleep(5000);
+//    printf("\b\b\\]");
+//    fflush(stdout);
+//    usleep(5000);
+//    fflush(stdout);
+//    }
+//
 
     //connection for the remote database. Used to help verify if a incoming connection is valid
     MYSQL con;
     mysql_init(&con);
-    mysql_options(&con,MYSQL_OPT_COMPRESS,1);
+    //mysql_options(con,MYSQL_OPT_COMPRESS,1);
 
     //char arrays for storing the contents of the databaseSettings
    char line [255];
@@ -85,7 +101,7 @@ int main(int argc , char *argv[])
         iter++;
     }
     //create the connection to the remote database
-    if (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
+    if (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0) == NULL)
  		{
       		exit(0);
   		}
@@ -212,6 +228,14 @@ int main(int argc , char *argv[])
 
             //inform user of socket number - used in send and receive commands
             printf("New connection , socket fd is %d , ip is : %s , port : %d \n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
+            if(FD_ISSET(new_socket,&readfds)) {
+                printf("SET \n");
+
+            } else {
+
+                printf("NOT SET \n");
+            }
+
             //index of the new socket in the table names array and the socket descripter array
             int newIndex = -1;
             //add new socket to array of sockets
@@ -232,22 +256,37 @@ int main(int argc , char *argv[])
             //read in whatever the client is sending out
             valread = read( sd , buffer, BUF_LEN);
 
-            //get all elements of the elements of the message that the client is sending out separated by commas
-            char ** result = splitString(buffer);
+            char ** result;
+            int disconnect = 0;
             //if we weren't able to read or the first word is not "VALID" then disconnect this new client
-            if (valread <= 0 || strcmp(result[0],"VALID")!=0)
+            if (valread <= 0 )
                 {
+                disconnect = 1;
+                } else {
+                    if(strlen(buffer)>=5) {
+                        result = splitString(buffer);
+                        if(strcmp(result[0],"VALID")!=0) {
+                            disconnect =1;
+                            free(result);
+                        }
+                    } else {
+                        disconnect = 1;
+                    }
+
+                }
+                if(disconnect==1){
                     //Somebody disconnected , get his details and print
                     getpeername(sd , (struct sockaddr*)&address , \
                         (socklen_t*)&addrlen);
                     printf("Host disconnected , ip %s , port %d \n" ,
                           inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
 
+
                     //Close the socket and mark as 0 in list for reuse
+                    FD_CLR(sd,&readfds);
                     close( sd );
                     client_socket[newIndex] = 0;
                     strcpy(tables[newIndex],"");
-                    free(result);
                 }
 
                 //Echo back the message that came in
@@ -279,17 +318,28 @@ int main(int argc , char *argv[])
                     MYSQL_RES *confresCheck;
                     printf("BBBBBBBBBBBBBBBBBBBB \n");
                     //query to check if table exists
-                    mysql_query(&con,checkQueryPtr);
+                    while(mysql_query(&con,checkQueryPtr)) {
+                        printf("MY SQL ERROR \n");
+                        fprintf(stderr, "%s\n", mysql_error(&con));
+                        mysql_close(&con);
+                        mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
+                        printf("\n");
+                        sleep(1);
+                    }
                     printf("BBBBBBBBBBBBBBBBBBBB \n");
                     //store the result of the table present check in the result variable
-                    confresCheck = mysql_store_result(&con);
+                    printf("DDDDDDDDDD \n");
+                    if((confresCheck = mysql_store_result(&con))){
+
+                    }
+                    printf("DDDDDDDDDD \n");
                     //if the client is attached to a valid table, then create files needed for it if they don't exist
                     //and or just send out the current command to the client
                     if(mysql_num_rows(confresCheck) != 0) {
-                        printf("AAAAAAA \n");
+                        printf("\n AAAAAAA \n");
                         //copy over the table name into the buffer
                         strcpy(buffer,result[1]);
-                        printf("AAAAAAA \n");
+                        printf("\n AAAAAAA \n");
                         //free the result
                         free(result);
                         //concat the table name onto the client dir
@@ -356,8 +406,10 @@ int main(int argc , char *argv[])
                         printf("FOUR \n");
                         send(sd, line,strlen(line),0);
                     } else {
+                        printf("FAILED TO GET ROWS \n");
                         //if client does not have a valid table, then free the result, close the socket, and wipe the tables index thing
                         free(result);
+                        FD_CLR(sd,&readfds);
                         close(sd);
                         client_socket[newIndex] = 0;
                         strcpy(tables[newIndex],"");
@@ -388,6 +440,7 @@ int main(int argc , char *argv[])
                           inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
 
                     //Close the socket and mark as 0 in list for reuse
+                    FD_CLR(sd,&readfds);
                     close( sd );
                     strcpy(tables[i],"");
                     client_socket[i] = 0;
