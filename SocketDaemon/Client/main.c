@@ -205,6 +205,7 @@ int main(int argc, char const *argv[])
             //if we recieve a 6 or 7 then we have recieved a command to start one of the daemons. Starting them is done through a bash script so that a new term window is made
             /* Contents of one of the scripts for reference
             #!/bin/bash
+            killall SQLDaemon
             DISPLAY=:0 x-terminal-emulator -e /var/www/daemons/SQLDaemon & disown
             exit 0
             */
