@@ -1,33 +1,9 @@
 <?php
+
+require 'db.php';
+
 //setting header to json
 header('Content-Type: application/json');
-
-//database settings 
-$contents = Array();
-$handle = fopen("/var/www/databaseSettings", "r");
-$lineNum = 0;
-if ($handle) {
-    while (($line = fgets($handle)) !== false) {
-	if($line[strlen($line)-1] == "\n") {
-        $contents[$lineNum] = substr($line,0,strlen( $line )-1);
-	} else {
-	$contents[$lineNum] = $line; 
-	}
-     $lineNum++;
-    }
-
-    fclose($handle);
-} else {
-    // error opening the file.
-} 
-
-
-//database
-define('DB_HOST', $contents[0]);
-define('DB_USERNAME', $contents[1]);
-define('DB_PASSWORD', $contents[2]);
-define('DB_NAME', $contents[3]);
-
 
 $fields = array("RTCTemperature");
 $lines = 0;
@@ -48,14 +24,9 @@ $min_time = "0";
 $max_time = "99999999999999";
 }
 
-//get connection
-$mysqli = @mysqli_connect(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-
-
 
 if(!$mysqli){
 	$table = "DataTable";
-	$mysqli = @mysqli_connect("localhost", DB_USERNAME, DB_PASSWORD, DB_NAME);
 }
 
 $query = array();

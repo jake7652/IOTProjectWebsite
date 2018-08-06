@@ -2,47 +2,15 @@
 //setting header to json
 header('Content-Type: application/json');
 
-//database settings 
-$contents = Array();
-$handle = fopen("/var/www/databaseSettings", "r");
-$lineNum = 0;
-if ($handle) {
-    while (($line = fgets($handle)) !== false) {
-	if($line[strlen($line)-1] == "\n") {
-        $contents[$lineNum] = substr($line,0,strlen( $line )-1);
-	} else {
-	$contents[$lineNum] = $line; 
-	}
-     $lineNum++;
-    }
-
-    fclose($handle);
-} else {
-    // error opening the file.
-} 
+require 'db.php';
 
 
-//database
-define('DB_HOST', $contents[0]);
-define('DB_USERNAME', $contents[1]);
-define('DB_PASSWORD', $contents[2]);
-define('DB_NAME', $contents[3]);
+$lines = 1; //how many lines from the database we should request
 
 $table = "DataTable";
 if(isset($_POST['arguments'])) {
 $table =  $_POST['arguments'][0];
 }
-
-//get connection
-$mysqli = @mysqli_connect(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
-
-if(!$mysqli){
-	
-	$mysqli = @mysqli_connect("localhost", DB_USERNAME, DB_PASSWORD, DB_NAME);
-	$table = "DataTable";
-}
-
-$lines = 1; //how many lines from the database we should request
 
 //request the last $lines rows from the database
 $query = sprintf("SELECT RTCDataTime FROM " . $table . " LIMIT " . $lines . "");
