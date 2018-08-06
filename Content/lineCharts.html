@@ -105,49 +105,21 @@ background-color:#4CAF50;
 <p>
 
 </p>
-<!-- checkboxes to graph other sensors container -->
+
+<!-- checkboxes to graph other sensor platforms -->
 <form>
 <fieldset> 
 <legend>Select measurements to graph</legend>
-<div class="data">    <!-- container for the checkboxes --> 
+<span>
+<span id="sensors">    <!-- container for the checkboxes --> 
     <!-- Bunch of spans for the checkboxes so that they are inline of each other -->
-    <span>
-    <input name="sensor" type="checkbox" value="PressureTemperature"/>
-    <label for="sensor">Air Temperature</label>
-    </span> 
-    
-    <span>
-    <input name="sensor" type="checkbox" value="Temperature1"/>
-    <label for="sensor">Water Temperature</label>
-    </span>
-
-    <span>
-    <input name="sensor" type="checkbox" value="PressurePressure"/>
-    <label for="sensor">Pressure</label>
-    </span>
-    
-    <span>
-    <input name="sensor" type="checkbox" value="PressureAlititude"/>
-    <label for="sensor">Altitude</label>
-    </span>
-
-    <span>
-    <input name="sensor" type="checkbox" value="Humidity"/>
-    <label for="sensor">Humidity</label>
-    </span>    
-    
-    <span>
-    <input name="sensor" type="checkbox" value="HumidityHeatIndex"/>
-    <label for="sensor">Heat Index</label>
-    </span>
-
-    <span>
-    <input name="sensor" type="checkbox" value="Transducer"/>
-    <label for="sensor">Distance</label>
-    </span>    
-    <!-- Button following the checkboxes calling the checkbox function when it is pressed -->
-    <input type="button" onclick="getCheckedCheckboxesFor('sensor');" value="Graph Values" />
-</div> <!-- End checkbox container div -->
+   
+   
+   
+</span> <!-- End checkbox container div -->
+<!-- Button following the checkboxes calling the checkbox function when it is pressed -->
+<input type="button" onclick="sensorSelectHandler('sensor');" value="Graph Values" />
+</span>
 </fieldset>
 </form>
 
@@ -236,6 +208,7 @@ var windowWidth = window.innerWidth; //used for setting the graph's size
 var windowHeight = window.innerHeight; //used for setting the graph's size
 
 var MIN_MAX = { //min and max Y value for each sensor graph
+RTCTemperature: [0,120],
 PressureTemperature: [0,120],
 Humidity: [0,100],
 HumidityHeatIndex: [0,120],
@@ -244,17 +217,33 @@ Transducer: [0,4000],
 PressurePressure: [26,33], // conversion of the 300-1100 hPa range that the datasheet lists for the sensor
 PressureAlititude: [-500, 2000], //can go up to 9000 but i don't think we'll be going that high
 Temperature1: [0,120],
+Temperature2: [0,120],
 };
 var LABELS  = { //Y labels for each sensor graph
-HumidityTemperature: "Temperature(F)",
-PressureTemperature: "Air Temperature(F)",
-Humidity: "Humidity(% Saturation)",
-HumidityHeatIndex: "Heat Index(F)",
-Transducer: "Distance(mm)",
-PressurePressure: "Pressure(Hg/mm)",
-PressureAlititude: "Altitude(ft)", 
-Temperature1: "Water Temperature(F)",
+RTCTemperature: "Air Temperature",
+HumidityTemperature: "Temperature",
+PressureTemperature: "Air Temperature 2",
+Humidity: "Humidity",
+HumidityHeatIndex: "Heat Index",
+Transducer: "Distance",
+PressurePressure: "Pressure",
+PressureAlititude: "Altitude", 
+Temperature1: "Water Temperature",
+Temperature2: "Water Temperature 2",
 
+};
+
+var UNITS  = { //Y labels for each sensor graph
+RTCTemperature: "F",
+HumidityTemperature: "F",
+PressureTemperature: "F",
+Humidity: "% Saturation",
+HumidityHeatIndex: "F",
+Transducer: "mm",
+PressurePressure: "Hg/mm",
+PressureAlititude: "ft", 
+Temperature1: "F",
+Temperature2: "F",
 };
 
 //This is used so that we can request a specific graph to be made when redirecting to the page from the table display page for instance
@@ -316,6 +305,8 @@ function tableNamesQuery(callback) {
 });
 return ret; //return the result of the ajax call
 }
+
+
 
 
 var interval ; //the variable used for the running plot update loop
@@ -446,7 +437,7 @@ function drawPlots(fields,plotName,domain,realtime) {
 			    layout['yaxis']['range'] = MIN_MAX[fields[i]]; //set min and max values for the yaxis of the first graph
 			    //layout['xaxis']['autorange'] = false; // by default do not autoscale the graph
 			    //layout['yaxis']['autorange'] = false; // by default do not autoscale the graph
-			    layout['yaxis']['title'] = LABELS[fields[i]]; //set the label on the yaxis for the first graph
+			    layout['yaxis']['title'] = LABELS[fields[i]] + "(" + UNITS[fields[i]] +")"; //set the label on the yaxis for the first graph
 			    layout['xaxis']['title'] = "Date"; //set the label for the xaxis of the first graph
 
 		   } else {
@@ -498,7 +489,7 @@ function drawPlots(fields,plotName,domain,realtime) {
 		    layout[yAx]['range'] = MIN_MAX[fields[i]]; //set the min and max values of the y axis of the subplot
 		    //layout[xAx]['autorange'] = false; //by default the subplot does not autoscale
 		    //layout[yAx]['autorange'] = false; //by default the subplot does not autoscale
-		    layout[yAx]['title'] = LABELS[fields[i]]; //set the label of the y axis 
+		    layout[yAx]['title'] = LABELS[fields[i]] + "(" + UNITS[fields[i]] +")"; //set the label of the y axis 
 		    layout[xAx]['title'] = "Date"; //set the label of the x axis
 
 
@@ -634,9 +625,9 @@ function drawPlots(fields,plotName,domain,realtime) {
 drawPlots(sensor,"plot",[],true); //call the drawPlots function for the sensor that was either stored in local storage or some preset default
 </script> <!-- End main plot script -->
 	
-<script type="text/javascript">
+<script>
 //handles what happens when the user presses the checkboxes for graphing sensors
-function getCheckedCheckboxesFor(checkboxName) {
+function sensorSelectHandler(checkboxName) {
     //abort all ajax calls
     for(var i = 0; i < ajaxCalls.length; i++) {
 	ajaxCalls[i].abort();
@@ -649,6 +640,7 @@ function getCheckedCheckboxesFor(checkboxName) {
     Array.prototype.forEach.call(checkboxes, function(el) {
         values.push(el.value);
     });
+    sessionStorage.setItem('sensor',values);
     //draw a plot with the selected checkboxes
     drawPlots(values,"plot",[],true);
     //return the array of values. Mainly for use for debugging with a alert of the return of this function
@@ -660,7 +652,7 @@ function getCheckedCheckboxesFor(checkboxName) {
 
 
 <!-- Script handling user input for the custom range -->
-<script type="text/javascript"> 
+<script> 
 function goTo()
 {
     
@@ -685,11 +677,7 @@ function goTo()
     drawPlots(currentFields,"plot",[start,end],false);
  
 }
-</script> <!-- End custom range script -->
 
-
-<!-- script for setting up the slider -->
-<script> 
 // show the loading overlay as the slider is set up
 $.LoadingOverlay("show");
 //slider script
@@ -803,12 +791,26 @@ function dateSlider() {
 
 }
 
-//end slider script
-</script>
+
+function fieldNamesQuery(callback) {
+ 	 ret = null;
+	 $.ajax({ url: "FieldNamesReq.php",
+         	async: true,
+		type: "POST",
+         	dataType: 'json',
+	 	data: {arguments: [sessionStorage.getItem('Table')]}, //Just use the first table that we select so we can only display overlapping sensors
+         	success: function(output) {
+	 		callback(output);
+	 
+		    
+		}
+		
+	});
+	return ret; //return the result of the ajax call
 
 
+}
 
-<script> 
 //callback populate the table selector dropdown menu
 function populateTables(tables) {
 	//get the dropdown menu element
@@ -849,10 +851,40 @@ function changeTable(table) {
 	history.go(0); 
 }
 
+//fields to not include in the checkbox options
+var ignoredFields = ["TransmissionKey","SystemID","SoftwareVersion","HardwareVersion","RTCDataTime"];
+function populateSensorCheckboxes(flds) {
+	//alert("AAAAAAAAA");
+	for(var i = 0; i < flds.length; i++){
+		if(!ignoredFields.includes(flds[i])) {
+			var spTemp = document.createElement("span");
+			var inTemp = document.createElement("INPUT");
+			var lbTemp = document.createElement("LABEL");
+			inTemp.setAttribute("type","checkbox");
+			inTemp.setAttribute("name","sensor");
+			inTemp.setAttribute("value",flds[i]+"");
+			if(sensor.includes(flds[i])){
+				inTemp.checked = true;
+			}
+			lbTemp.for = "sensor";
+			lbTemp.innerHTML = ((flds[i] in LABELS) ? LABELS[flds[i]] : flds[i]);
+			spTemp.appendChild(inTemp);
+			spTemp.appendChild(lbTemp);
+			document.getElementById("sensors").appendChild(spTemp);
+		}
+	}
+
+}
+fieldNamesQuery(populateSensorCheckboxes);
+
+
 function goBack(){
 	$.LoadingOverlay("show");
 	window.location.href = '/Content/index.html';
 }
+
+
+
 </script>
 
 
