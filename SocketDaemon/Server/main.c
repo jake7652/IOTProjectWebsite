@@ -229,11 +229,11 @@ int main(int argc , char *argv[])
             //inform user of socket number - used in send and receive commands
             printf("New connection , socket fd is %d , ip is : %s , port : %d \n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
             if(FD_ISSET(new_socket,&readfds)) {
-                printf("SET \n");
+               // printf("SET \n");
 
             } else {
 
-                printf("NOT SET \n");
+                //printf("NOT SET \n");
             }
 
             //index of the new socket in the table names array and the socket descripter array
@@ -255,25 +255,29 @@ int main(int argc , char *argv[])
             char buffer[BUF_LEN+1];  //data buffer of 2K
             //read in whatever the client is sending out
             valread = read( sd , buffer, BUF_LEN);
-
+            //delared here, set once we know that we read in some valid input from the client socket
             char ** result;
             int disconnect = 0;
-            //if we weren't able to read or the first word is not "VALID" then disconnect this new client
+            //if to determine whether we were able to read in any information from the socket at all
             if (valread <= 0 )
                 {
+                //if we weren't able to read any info or client disconnected, flag to disconnect
                 disconnect = 1;
-                } else {
+                } else { //else if we actually read some stuff into the buffer then check to see if we read in at least 5 characters(needed for next validation)
                     if(strlen(buffer)>=5) {
+                        //if the buffer is 5 or more chars long then split the buffer by commas and store in result
                         result = splitString(buffer);
+                        //if the first part of the buffer is not equal to VALID then flag for disconnect and free the result to prevent mem leaks
                         if(strcmp(result[0],"VALID")!=0) {
                             disconnect =1;
                             free(result);
                         }
-                    } else {
+                    } else { //if the buffer was not long enough, flag for disconnect
                         disconnect = 1;
                     }
 
                 }
+                //after determining whether we should disconnect new client, disconnect the client if there is a flag for it
                 if(disconnect==1){
                     //Somebody disconnected , get his details and print
                     getpeername(sd , (struct sockaddr*)&address , \
@@ -289,7 +293,7 @@ int main(int argc , char *argv[])
                     strcpy(tables[newIndex],"");
                 }
 
-                //Echo back the message that came in
+                //if we are not flagged to disconnect, actually perform the initial setup for a new client
                 else
                 {
                     //temp file location string for holding the client files dir and paths
@@ -303,44 +307,45 @@ int main(int argc , char *argv[])
                     char tempBuff[BUF_LEN+1];
 
                     char checkQuery[BUF_LEN+1];
-                    //pointer to the check query string so that i can print it out without seg faulting
+                    //pointer to the check query string so that I can print it out without seg faulting
                     char *checkQueryPtr;
                     //build the check query string
-                    //check query to further verify that the client has a valid SQL table
+                    //check query to further verify that the client has a valid SQL table in the remote DB
                     checkQueryPtr = strcpy(checkQuery,"SHOW TABLES LIKE '");
                     checkQueryPtr = strcat(checkQuery,result[1]);
                     checkQueryPtr = strcat(checkQuery, "';");
                     //print out the check query
-                    printf("\n");
-                    printf(checkQueryPtr);
-                    printf("\n");
+                  //  printf("\n");
+                   // printf(checkQueryPtr);
+                    //printf("\n");
                     //the result variable for the table check
                     MYSQL_RES *confresCheck;
-                    printf("BBBBBBBBBBBBBBBBBBBB \n");
-                    //query to check if table exists
+                   // printf("BBBBBBBBBBBBBBBBBBBB \n");
+                    //query to check if table exists. Attempt reconnect every 1s to SQL if we have a error
                     while(mysql_query(&con,checkQueryPtr)) {
-                        printf("MY SQL ERROR \n");
-                        fprintf(stderr, "%s\n", mysql_error(&con));
+                       // printf("MY SQL ERROR \n");
+                        //fprintf(stderr, "%s\n", mysql_error(&con));
                         mysql_close(&con);
                         mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
                         printf("\n");
                         sleep(1);
                     }
-                    printf("BBBBBBBBBBBBBBBBBBBB \n");
-                    //store the result of the table present check in the result variable
-                    printf("DDDDDDDDDD \n");
+                   // printf("BBBBBBBBBBBBBBBBBBBB \n");
+
+                   // printf("DDDDDDDDDD \n");
+                   //store the result of the table present check in the result variable
                     if((confresCheck = mysql_store_result(&con))){
 
                     }
-                    printf("DDDDDDDDDD \n");
+                    //printf("DDDDDDDDDD \n");
                     //if the client is attached to a valid table, then create files needed for it if they don't exist
-                    //and or just send out the current command to the client
+                    //and/or send out the current command to the client
                     if(mysql_num_rows(confresCheck) != 0) {
-                        printf("\n AAAAAAA \n");
+                        //printf("\n AAAAAAA \n");
                         //copy over the table name into the buffer
                         strcpy(buffer,result[1]);
-                        printf("\n AAAAAAA \n");
-                        //free the result
+                       // printf("\n AAAAAAA \n");
+                        //free the result since we only need table name for this one
                         free(result);
                         //concat the table name onto the client dir
                         tempLocPt = strcat(tempLoc, buffer);
@@ -352,7 +357,7 @@ int main(int argc , char *argv[])
                                 break;
                             }
                         }
-                        printf("TWO \n");
+                       // printf("TWO \n");
                         //used to determine whether the necessary directory exists
                         struct stat st = {0};
                         //char array and pointer to hold path to the command file
@@ -364,7 +369,7 @@ int main(int argc , char *argv[])
                         FILE * commandFile;
                         //if the dir for the client does not exist, create the dir and files
                         if(stat(tempLocPt,&st)==-1) {
-                            printf("directory does not exist so we have to create it  \n");
+                            //printf("directory does not exist so we have to create it  \n");
                             //create the dir and set proper permissions with chmod since the param in mkdir does not work
                             mkdir(tempLocPt,0777);
                             chmod(tempLocPt,0777);
@@ -393,7 +398,7 @@ int main(int argc , char *argv[])
                             fflush(commandFile);
                             fclose(commandFile);
                         }
-                        printf("THREE \n");
+                       // printf("THREE \n");
                         //if there is a valid table attached to client and dir exists, then we just read from command file and send command to client
                         commandFile = fopen(commandPathPt,"r");
                         char line[BUF_LEN+1] ="";
@@ -402,11 +407,12 @@ int main(int argc , char *argv[])
                         //copy trimmed line into the line var
                         strcpy(line,fTrim(line));
                         fclose(commandFile);
-                        //send command to client
-                        printf("FOUR \n");
+
+                        //printf("FOUR \n");
+                         //send command to client
                         send(sd, line,strlen(line),0);
                     } else {
-                        printf("FAILED TO GET ROWS \n");
+                        //printf("FAILED TO GET ROWS \n");
                         //if client does not have a valid table, then free the result, close the socket, and wipe the tables index thing
                         free(result);
                         FD_CLR(sd,&readfds);
