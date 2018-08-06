@@ -867,7 +867,7 @@ function populateSensorCheckboxes(flds) {
 				inTemp.checked = true;
 			}
 			lbTemp.for = "sensor";
-			lbTemp.innerHTML = ((flds[i] in LABELS) ? LABELS[flds[i]] : flds[i]);
+			lbTemp.innerHTML = " "+((flds[i] in LABELS) ? LABELS[flds[i]] : flds[i])+" ";
 			spTemp.appendChild(inTemp);
 			spTemp.appendChild(lbTemp);
 			document.getElementById("sensors").appendChild(spTemp);
