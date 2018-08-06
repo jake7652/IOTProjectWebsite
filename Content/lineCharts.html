@@ -519,7 +519,18 @@ function drawPlots(fields,plotName,domain,realtime) {
 		//React is more efficient but I was experiencing some unusual behavior with the subplots when using it so I had to use newPlot instead
 		//the 4th argument hides the logo in the modebar, tells it to always be displayed, and removes autoscale since it does not work
 		Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,modeBarButtonsToRemove: ['autoScale2d']}); 
+		
+		window.onresize = function(event) {
 
+		Plotly.relayout(plotName, {
+			width: window.innerWidth*.9,
+			height: window.innerHeight*.8,
+			
+		
+		});
+		
+
+		};
 
 		//realtime updater of the plot 
 		function getFromSqlUpdater(fields,lines,domain,async) {
