@@ -131,7 +131,9 @@ while (fgets(line, sizeof(line), plist)) {
 
     if (&con == NULL)
         {
+        if(DEBUG) {
             fprintf(stderr, "%s\n", mysql_error(&con));
+        }
             exit(1);
         }
         mysql_options(&con,MYSQL_OPT_COMPRESS,1);
@@ -224,7 +226,9 @@ char tableQuery[2047];
 strcpy(tableQuery, "CREATE TABLE ");
 strcat(tableQuery, file2[4]);
 strcat(tableQuery, " (TransmissionKey VARCHAR(50), SystemID VARCHAR(10), SoftwareVersion VARCHAR(50), HardwareVersion VARCHAR(50), RTCDataTime VARCHAR(45), RTCTemperature DECIMAL(10,2), PressureTemperature DECIMAL(10,2), PressurePressure DECIMAL(10,2), PressureAlititude DECIMAL(10,2), Temperature1 DECIMAL(10,2), Temperature2 DECIMAL(10,2), Humidity DECIMAL(10,2), HumidityTemperature DECIMAL(10,2), HumidityHeatIndex DECIMAL(10,2), Transducer INT(11)); ");
+if(DEBUG) {
 printf(tableQuery);
+}
 //tell the database to create the table
 statusFile = fopen(statusFilePath,"w");
 fprintf(statusFile,"CREATE_NEW_TABLE");
@@ -508,8 +512,10 @@ printf("\n");
 //query the server to insert the rows with same fault tolerance in case we lose connection
 while(mysql_query(&con, command)) {
 connectionInterrupted = 1;
+if(DEBUG) {
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
 fprintf(stderr, "%s\n", mysql_error(&con));
+}
 statusFile = fopen(statusFilePath,"w");
 char tempStatus[] = "REMOTE_SQL_ERROR: ";
 char *tempStatusPt = strcat(tempStatus,mysql_error(&con));
