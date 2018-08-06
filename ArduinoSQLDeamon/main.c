@@ -64,16 +64,16 @@ void *statusThread(void *vargp)
     while(1) {
     printf("\b\b|]");
     fflush(stdout);
-    usleep(5000);
+    usleep(90000);
     printf("\b\b/]");
     fflush(stdout);
-    usleep(5000);
+    usleep(90000);
     printf("\b\b-]");
     fflush(stdout);
-    usleep(5000);
+    usleep(90000);
     printf("\b\b\\]");
     fflush(stdout);
-    usleep(5000);
+    usleep(90000);
     fflush(stdout);
     }
 
