@@ -364,7 +364,7 @@ for(var i = 0; i < tables.length; i++) {
 ]
 ).draw(true);
 }
-
+$.LoadingOverlay("hide");
 }
 
 function daemonFileQueryCallback(output) {
@@ -441,7 +441,6 @@ tableNamesQuery(tablesCallback);
 //show the loading overlay on the website right before we start to pull values from the local database
 $.LoadingOverlay("show");
 
-$.LoadingOverlay("hide");
 
 //function called when the go back button pressed to go back to the index page
 function goBack(){
