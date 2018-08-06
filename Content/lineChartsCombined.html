@@ -329,6 +329,7 @@ function tableNamesQuery(callback) {
 
 var interval ; //the variable used for the running plot update loop
 var currentFields; //used to keep track of what is currently graphed so that I can use this if a user enters a custom start and end date in
+var maxDate = new Array();
 //draw the plots at plotName dive for the given array of fields and given time domain
 function drawPlots(fields,plotName,domain,realtime) {
 
@@ -372,14 +373,20 @@ function drawPlots(fields,plotName,domain,realtime) {
 		var temps = query.data; //all y data for each plot, arrays of arrays, each one being all values from one field.
 		var dates = query.time; //all x data for each plot in one array.
 
-		var maxDate = new Array();
-
+		maxDate = new Array();
+		
+		//alert(sessionStorage.getItem('Tables').split(",")[0]);
+		//alert(dates[0][dates[0].length-1]);
+		//if(dates.length > 1){
+		//	alert(sessionStorage.getItem('Tables').split(",")[1]);
+		//	alert(dates[1][dates[1].length-1]);
+		//}
 		var maxTemp = 0; //legacy previously used for ranges, but now ranges are predefined in MIN_MAX
 		for(var i2 = 0; i2 < dates.length; i2++) {
-			//alert(dates[i2]);
+			maxDate[i2] =  dates[i2][dates[i2].length-1]; //legacy previously used for domain, but now domain is predefined in the domain parameter
 			//loop to properly format date for the plots
 			for(var i = 0; i < dates[i2].length; i++) {
-				maxDate[i2] = dates[i2][dates[i2].length-1]; //legacy previously used for domain, but now domain is predefined in the domain parameter
+				
 				//legacy used for ranges, but now not needed since they are predefined
 				if(temps[i2][0][i] > maxTemp) {
 					maxTemp = temps[i2][i];
@@ -390,7 +397,7 @@ function drawPlots(fields,plotName,domain,realtime) {
 				,dates[i2][i].substring(10,12) ,":" ,dates[i2][i].substring(12,14));
 				dates[i2][i] = tempDate;
 			}
-			//alert(dates[i2]);
+			//alert(maxDate[i2]);
 		}
 		$.LoadingOverlay("hide");
 		//start of labels for the x and y axis anchors
@@ -566,7 +573,8 @@ function drawPlots(fields,plotName,domain,realtime) {
 		//the 4th argument hides the logo in the modebar, tells it to always be displayed, and removes autoscale since it does not work
 		Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,modeBarButtonsToRemove: ['autoScale2d']}); 
 
-
+		
+		var firstUpdate = true;
 		//realtime updater of the plot variables
 		function getFromSqlUpdater(fields,lines,domain,async) {
 			var update = true;
@@ -575,7 +583,7 @@ function drawPlots(fields,plotName,domain,realtime) {
 			var updatedPoints = {
 				x: [],
 				y: [],
-			} 
+			};
 			var tables = sessionStorage.getItem('Tables').split(",");
 			function updateQuery(fields,lines,domain,i3,async) {
 				runningUpdates++;
@@ -586,9 +594,9 @@ function drawPlots(fields,plotName,domain,realtime) {
          				dataType: 'json',
 	 				data: {arguments: [fields,lines,plotToSql(domain[0]),plotToSql(domain[1]),tables[i3]]},
         				success: function(output) {
-	 					//alert(tables[i3]);
 	 					var newTemps = output.data;	 
 	 					var newDates = output.time;
+				
 	 					//var update = false; //says whether or not there are new dates in database
 	 					var x_update = new Array();
 	 					var y_update = new Array();
@@ -601,8 +609,7 @@ function drawPlots(fields,plotName,domain,realtime) {
 	 						if(parseInt(newDates[i]) > parseInt(maxDate[i3])) {
 	 
 	 							var tempDate = "";
-	 							tempDate = tempDate.concat (newDates[i].substring(0,4), "-" , newDates[i].substring(4,6) ,"-" , newDates[i].substring(6,8) ," " ,newDates[i].substring(8,10) ,":" 
-	 							,newDates[i].substring(10,12) ,":" ,newDates[i].substring(12,14));
+	 							tempDate = tempDate.concat (newDates[i].substring(0,4), "-" , newDates[i].substring(4,6) ,"-" , newDates[i].substring(6,8) ," " ,newDates[i].substring(8,10) ,":" ,newDates[i].substring(10,12) ,":" ,newDates[i].substring(12,14));
 	 
 	 							//We might be reading multiple sensors at a time so make sure to grab every updated value and store in the array.
  	 							//i2 = sensor, i = row
@@ -619,11 +626,13 @@ function drawPlots(fields,plotName,domain,realtime) {
 						//clone over the date array for every sensor and make a extendtraces array for the update function
 						//tracesArr[i3] = new Array();
 						var x_mult_update = new Array();
+						
 						if(parseInt(newDates[newDates.length-1]) > parseInt(maxDate[i3])) { 
 							maxDate[i3] = newDates[newDates.length-1]; 
 						} else {
-							update = false;
+							updateArr[i3] = false;
 						}
+
   						for(var i = 0; i < newTemps.length; i++) {
 							tracesArr[i+(i3*newTemps.length)] = i+(i3*newTemps.length);
 							x_mult_update[i] = x_update;
@@ -631,10 +640,16 @@ function drawPlots(fields,plotName,domain,realtime) {
 							updatedPoints.y[updatedPoints.y.length] = y_update[i];
 						}
 	
-	
+						//alert(updateArr);
+						//alert("one");
 						runningUpdates=runningUpdates-1;	
 						if(runningUpdates == 0 && update) {
-							Plotly.extendTraces(plotName,updatedPoints,tracesArr);
+							if(!firstUpdate) {
+								Plotly.extendTraces(plotName,updatedPoints,tracesArr);
+								//alert("two");
+							} else {
+								firstUpdate = false;
+							}
 						}
                   			}
 		
