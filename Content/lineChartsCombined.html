@@ -574,6 +574,19 @@ function drawPlots(fields,plotName,domain,realtime) {
 		Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,modeBarButtonsToRemove: ['autoScale2d']}); 
 
 		
+
+		window.onresize = function(event) {
+
+			Plotly.relayout(plotName, {
+				width: window.innerWidth*.9,
+				height: window.innerHeight*.8,
+			
+		
+			});
+		
+
+		};
+
 		var firstUpdate = true;
 		//realtime updater of the plot variables
 		function getFromSqlUpdater(fields,lines,domain,async) {
