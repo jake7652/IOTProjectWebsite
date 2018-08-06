@@ -56,6 +56,11 @@ static int exec_prog(const char **argv)
 
 int main(int argc, char const *argv[])
 {
+    //start daemons at beginning of this in order to get rid of faulty status reporting when this daemon is running
+    const char * sensorArgs[255] = {"/var/www/daemons/sensor.sh","debug"};
+    const char * sqlArgs[255] = {"/var/www/daemons/SQL.sh","debug"};
+    exec_prog(sensorArgs);
+    exec_prog(sqlArgs);
     //line of the sql settings file
     char line [BUF_LEN+1] = "";
     //all lines of the sql settings file
