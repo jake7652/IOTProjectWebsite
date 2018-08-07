@@ -7,7 +7,7 @@
 <script src="/lib/DataTables/datatables.min.js"></script>
 <link rel="stylesheet" href="/lib/DataTables/datatables.min.css">
 <script src="/lib/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
-
+<script src="/lib/database.js"></script>
 <head>
 <!-- Styling for the graph button, the reset button, sliders, and separating spans -->
 <style>
@@ -249,32 +249,9 @@ website last updated 7-21-2018 04:53
 
 
 
-var LABELS  = { //Y labels for each sensor graph
-RTCTemperature: "Air Temperature",
-HumidityTemperature: "Temperature",
-PressureTemperature: "Air Temperature 2",
-Humidity: "Humidity",
-HumidityHeatIndex: "Heat Index",
-Transducer: "Distance",
-PressurePressure: "Pressure",
-PressureAlititude: "Altitude", 
-Temperature1: "Water Temperature",
-Temperature2: "Water Temperature 2",
+var LABELS  = database.LABELS;
 
-};
-
-var UNITS  = { //Y labels for each sensor graph
-RTCTemperature: "F",
-HumidityTemperature: "F",
-PressureTemperature: "F",
-Humidity: "% Saturation",
-HumidityHeatIndex: "F",
-Transducer: "mm",
-PressurePressure: "Hg/mm",
-PressureAlititude: "ft", 
-Temperature1: "F",
-Temperature2: "F",
-};
+var UNITS  = database.UNITS;
 
 
 //if the table has not been set, then set the table that we are pulling the data from to the default DataTable
@@ -317,7 +294,7 @@ function sqlToSlider(date) {
 //all SQL table fields that we are entering in the table
 var fields = new Array("HumidityTemperature","PressureTemperature","Humidity","HumidityHeatIndex","Transducer","PressurePressure","PressureAlititude","Temperature1");
 //fields to not include in the table
-var ignoredFields = ["TransmissionKey","SystemID","SoftwareVersion","HardwareVersion","RTCDataTime"];
+var ignoredFields = database.IGNORED_FIELDS;
 //the field that we use for measuring time in the SQL table
 var timeField = "RTCDataTime";
 var table;

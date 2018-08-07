@@ -5,12 +5,13 @@ header('Content-Type: application/json');
 require 'db.php';
 //database settings 
 
-//$lines = 1; //how many lines from the database we should request
+$lines = 1; //how many lines from the database we should request
 
 //request the last $lines rows from the database
 $query = sprintf("show tables");
 //$query = sprintf("SELECT * FROM ( SELECT * FROM " . $table . " ORDER BY RTCDataTime DESC LIMIT " . $lines . ") sub ORDER BY TransmissionKey ASC;");
 $result = $mysqli->query($query);
+
 
 
 
@@ -20,26 +21,31 @@ $lastTimes = Array();
 foreach($result as $row) {
 foreach($row as $field) {
 $tables[$index] = $field;
-//echo json_encode($tables[$index]);
-$lastTimes[$index] = $mysqli->query("SELECT RTCDataTime FROM ( SELECT RTCDataTime FROM " . $tables[$index] . " ORDER BY TransmissionKey DESC LIMIT 1) sub ORDER BY RTCDataTime ASC;");
-$index++;
-}
-}
-$times = Array();
-for($i = 0; $i < sizeof($tables); $i++) {
-foreach($lastTimes[$i] as $row) {
-foreach($row as $field) {
-$times[$tables[$i]] = $field;
-//$times[$i]=$field;
-}
+$index ++;
 }
 }
 
-for($i = 0; $i < sizeof($lastTimes); $i++){
-$lastTimes[$i]->close();
+$result->close();
+
+$query = "SELECT ";
+for($i = 0; $i < (sizeof($tables)-1); $i++) {
+$query = $query . "(SELECT RTCDataTime FROM " . $tables[$i] . " ORDER BY RTCDataTime DESC LIMIT 1) AS " . $tables[$i] . ",";
+
+
 }
 
-echo json_encode($times);
+$query = $query . "(SELECT RTCDataTime FROM " . $tables[$i] . " ORDER BY RTCDataTime DESC LIMIT 1) AS " . $tables[$i] . ";";
+
+$result = $mysqli->query($query);
+
+echo json_encode(mysqli_fetch_assoc($result));
+
+
+
+
+
+
+
 
 
 

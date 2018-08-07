@@ -8,6 +8,7 @@
 <script src="/lib/jquery-3.3.1.js"></script>
 <!-- offline source for the loading overlay of the website -->
 <script src="/lib/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
+<script src="/lib/database.js"></script>
 <!-- jquery ui for the sliders -->
 <script src="/lib/jquery-ui/jquery-ui.min.js"></script>
 <link rel="stylesheet" href="/lib/jquery-ui/jquery-ui.min.css">
@@ -212,44 +213,10 @@ Website last updated 2018-07-17 4:40
 var windowWidth = window.innerWidth; //used for setting the graph's size
 var windowHeight = window.innerHeight; //used for setting the graph's size
 
-var MIN_MAX = { //min and max Y value for each sensor graph
-RTCTemperature: [0,120],
-PressureTemperature: [0,120],
-Humidity: [0,100],
-HumidityHeatIndex: [0,120],
-HumidityTemperature: [0,120],
-Transducer: [0,4000],
-PressurePressure: [26,33], // conversion of the 300-1100 hPa range that the datasheet lists for the sensor
-PressureAlititude: [-500, 2000], //can go up to 9000 but i don't think we'll be going that high
-Temperature1: [0,120],
-Temperature2: [0,120],
-};
-var LABELS  = { //Y labels for each sensor graph
-RTCTemperature: "Air Temperature",
-HumidityTemperature: "Temperature",
-PressureTemperature: "Air Temperature 2",
-Humidity: "Humidity",
-HumidityHeatIndex: "Heat Index",
-Transducer: "Distance",
-PressurePressure: "Pressure",
-PressureAlititude: "Altitude", 
-Temperature1: "Water Temperature",
-Temperature2: "Water Temperature 2",
+var MIN_MAX = database.MIN_MAX;
+var LABELS  = database.LABELS;
 
-};
-
-var UNITS  = { //Y labels for each sensor graph
-RTCTemperature: "F",
-HumidityTemperature: "F",
-PressureTemperature: "F",
-Humidity: "% Saturation",
-HumidityHeatIndex: "F",
-Transducer: "mm",
-PressurePressure: "Hg/mm",
-PressureAlititude: "ft", 
-Temperature1: "F",
-Temperature2: "F",
-};
+var UNITS  = database.UNITS;
 
 
 
@@ -720,7 +687,7 @@ function drawPlots(fields,plotName,domain,realtime) {
 
 } //end drawPlots function
 
-drawPlots(sessionStorage.getItem('sensor').split(","),"plot",[],true); //call the drawPlots function for the sensor that was either stored in local storage or some preset default
+drawPlots(sensor,"plot",[],true); //call the drawPlots function for the sensor that was either stored in local storage or some preset default
 </script> <!-- End main plot script -->
 	
 <script>
@@ -739,7 +706,7 @@ function sensorSelectHandler(checkboxName) {
         values.push(el.value);
     });
     sessionStorage.setItem("sensor",values);
-    alert(sessionStorage.getItem("sensor"));
+    //alert(sessionStorage.getItem("sensor"));
     //draw a plot with the selected checkboxes
     drawPlots(values,"plot",[],true);
     //return the array of values. Mainly for use for debugging with a alert of the return of this function
@@ -944,7 +911,7 @@ function tableSelectHandler(checkboxName) {
 }
 
 //fields to not include in the checkbox options
-var ignoredFields = ["TransmissionKey","SystemID","SoftwareVersion","HardwareVersion","RTCDataTime"];
+var ignoredFields = database.IGNORED_FIELDS;
 function populateSensorCheckboxes(flds) {
 	for(var i = 0; i < flds.length; i++){
 		if(!ignoredFields.includes(flds[i])) {

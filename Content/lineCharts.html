@@ -1,6 +1,4 @@
 <head>
-</head>
-<body>
 <!-- offline source of plotly API used for graphing the plot -->
 <script src="/lib/plotly-latest.min.js"></script>
 <!-- offline source for jquery used for calling php script from javascript -->
@@ -9,7 +7,12 @@
 <script src="/lib/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
 <!-- jquery ui for the sliders -->
 <script src="/lib/jquery-ui/jquery-ui.min.js"></script>
+
+<script src="/lib/database.js"></script>
 <link rel="stylesheet" href="/lib/jquery-ui/jquery-ui.min.css">
+
+</head>
+<body>
 
 
 
@@ -204,47 +207,14 @@ Website last updated 2018-07-17 4:40
 
 
 <script>
+
 var windowWidth = window.innerWidth; //used for setting the graph's size
 var windowHeight = window.innerHeight; //used for setting the graph's size
 
-var MIN_MAX = { //min and max Y value for each sensor graph
-RTCTemperature: [0,120],
-PressureTemperature: [0,120],
-Humidity: [0,100],
-HumidityHeatIndex: [0,120],
-HumidityTemperature: [0,120],
-Transducer: [0,4000],
-PressurePressure: [26,33], // conversion of the 300-1100 hPa range that the datasheet lists for the sensor
-PressureAlititude: [-500, 2000], //can go up to 9000 but i don't think we'll be going that high
-Temperature1: [0,120],
-Temperature2: [0,120],
-};
-var LABELS  = { //Y labels for each sensor graph
-RTCTemperature: "Air Temperature",
-HumidityTemperature: "Temperature",
-PressureTemperature: "Air Temperature 2",
-Humidity: "Humidity",
-HumidityHeatIndex: "Heat Index",
-Transducer: "Distance",
-PressurePressure: "Pressure",
-PressureAlititude: "Altitude", 
-Temperature1: "Water Temperature",
-Temperature2: "Water Temperature 2",
+var MIN_MAX = database.MIN_MAX;
+var LABELS  = database.LABELS;
 
-};
-
-var UNITS  = { //Y labels for each sensor graph
-RTCTemperature: "F",
-HumidityTemperature: "F",
-PressureTemperature: "F",
-Humidity: "% Saturation",
-HumidityHeatIndex: "F",
-Transducer: "mm",
-PressurePressure: "Hg/mm",
-PressureAlititude: "ft", 
-Temperature1: "F",
-Temperature2: "F",
-};
+var UNITS  = database.UNITS;
 
 //This is used so that we can request a specific graph to be made when redirecting to the page from the table display page for instance
 
@@ -322,8 +292,6 @@ function drawPlots(fields,plotName,domain,realtime) {
 
 
 	function queryCallback(result) {
-
-
 
 		query = result;
 
@@ -511,6 +479,8 @@ function drawPlots(fields,plotName,domain,realtime) {
 		//the 4th argument hides the logo in the modebar, tells it to always be displayed, and removes autoscale since it does not work
 		Plotly.newPlot(plotName,traces,layout,{displaylogo: false, displayModeBar: true,modeBarButtonsToRemove: ['autoScale2d']}); 
 		
+		
+
 		window.onresize = function(event) {
 
 			Plotly.relayout(plotName, {
@@ -522,6 +492,15 @@ function drawPlots(fields,plotName,domain,realtime) {
 		
 
 		};
+		var myPlot = document.getElementById(plotName);
+		myPlot.on('plotly_click', function(data){
+    			var pts = '';
+    			for(var i=0; i < data.points.length; i++){
+        			pts = 'x = '+new Date(data.points[i].x) +'\ny = '+
+            			data.points[i].y.toPrecision(4) + '\n\n';
+    			}
+    			alert('Point you clicked on:\n\n'+pts);
+		});
 
 		//realtime updater of the plot 
 		function getFromSqlUpdater(fields,lines,domain,async) {
@@ -852,7 +831,7 @@ function changeTable(table) {
 }
 
 //fields to not include in the checkbox options
-var ignoredFields = ["TransmissionKey","SystemID","SoftwareVersion","HardwareVersion","RTCDataTime"];
+var ignoredFields = database.IGNORED_FIELDS;
 function populateSensorCheckboxes(flds) {
 	//alert("AAAAAAAAA");
 	for(var i = 0; i < flds.length; i++){

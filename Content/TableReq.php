@@ -18,7 +18,7 @@ if(!$mysqli){
 $lines = 1; //how many lines from the database we should request
 
 //request the last $lines rows from the database
-$query = sprintf("SELECT * FROM ( SELECT * FROM " . $table . " ORDER BY RTCDataTime DESC LIMIT " . $lines . ") sub ORDER BY TransmissionKey ASC;");
+$query = "SELECT * FROM " . $table . " ORDER BY RTCDataTime DESC LIMIT 1;";
 $result = $mysqli->query($query);
 
 //we only have one row so just fetch the associative array for that row
