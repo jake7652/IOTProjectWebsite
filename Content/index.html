@@ -57,7 +57,7 @@ tr { height: 50px }
 </table>
 
 <script>
-
+$.LoadingOverlay("hide");
 
 var userLoggedIn = false;
 var userPermissions = 0;
@@ -67,6 +67,7 @@ $.ajax({ url: "/Account/usrStat.php",
          dataType: 'json',
 	 data: {arguments: []}, //no arguments needed for this
          success: function(output) {
+		$.LoadingOverlay("hide");
 		userLoggedIn = output[0];
 		userPermissions = parseInt(output[1]);
 }
@@ -119,7 +120,7 @@ $.LoadingOverlay("hide");
 
 //what happens when one of the graph buttons are clicked
 $('#pagesTable tbody').on( 'click', 'button', function () {
-        $.LoadingOverlay("show");
+        //$.LoadingOverlay("show");
         
 	//redirect to the page that was selected by this button
 	//alert(this.value);
@@ -127,6 +128,7 @@ $('#pagesTable tbody').on( 'click', 'button', function () {
         
     } );
 
+$.LoadingOverlay("hide");
 </script>
 
 
