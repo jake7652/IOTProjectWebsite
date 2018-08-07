@@ -77,7 +77,7 @@ $query[0] = $query[0] . "," . $fields[$i];
 //$query[$i] = sprintf("SELECT " . $fields[$i] . " FROM ( SELECT * FROM " . $table . " ORDER BY TransmissionKey DESC LIMIT " . $lines . ") sub ORDER BY TransmissionKey ASC;");
 
 }
-$query[0] = $query[0] . " FROM ( SELECT * FROM " . $table . " ORDER BY TransmissionKey DESC LIMIT " . $lines . ") sub ORDER BY TransmissionKey ASC;";
+$query[0] = $query[0] . " FROM ( SELECT * FROM " . $table . " ORDER BY RTCDataTime DESC LIMIT " . $lines . ") sub ORDER BY RTCDataTime ASC;";
 $result[0] = $mysqli->query($query[0]);
 //$time_query = sprintf("SELECT RTCDataTime FROM ( SELECT * FROM " . $table . " ORDER BY TransmissionKey DESC LIMIT " . $lines . ") sub ORDER BY TransmissionKey ASC;");
 }

@@ -587,7 +587,8 @@ function drawPlots(fields,plotName,domain,realtime) {
         				success: function(output) {
 	 					var newTemps = output.data;	 
 	 					var newDates = output.time;
-				
+						//alert(newTemps);
+						//alert (newDates);
 	 					//var update = false; //says whether or not there are new dates in database
 	 					var x_update = new Array();
 	 					var y_update = new Array();
@@ -617,7 +618,8 @@ function drawPlots(fields,plotName,domain,realtime) {
 						//clone over the date array for every sensor and make a extendtraces array for the update function
 						//tracesArr[i3] = new Array();
 						var x_mult_update = new Array();
-						
+						//alert(parseInt(newDates[newDates.length-1]));
+						//alert(parseInt(maxDate[i3]));
 						if(parseInt(newDates[newDates.length-1]) > parseInt(maxDate[i3])) { 
 							maxDate[i3] = newDates[newDates.length-1]; 
 						} else {
