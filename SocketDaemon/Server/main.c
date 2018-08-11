@@ -13,11 +13,16 @@
 //#include <sys/types.h>
 #include <sys/stat.h>
 //#include <unistd.h>
-#include <mysql.h>
+#include <mysql/mysql.h>
+#include <resolv.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <mysql/mysql.h>
 #define TRUE   1
 #define FALSE  0
 #define PORT 8080
 #define BUF_LEN 2048
+#define MAX_CLIENTS 4065
 
 //function to split a string along a delimeter
 //you will need to call free() on the result of this function or else a mem leak will occur
@@ -61,6 +66,50 @@ char * fTrim (char s[]) {
   return s;
 }
 
+
+/*---------------------------------------------------------------------*/
+/*--- InitServerCTX - initialize SSL server  and create context     ---*/
+/*---------------------------------------------------------------------*/
+SSL_CTX* InitServerCTX(void)
+{   SSL_METHOD *method;
+    SSL_CTX *ctx;
+
+    OpenSSL_add_all_algorithms();		/* load & register all cryptos, etc. */
+    SSL_load_error_strings();			/* load all error messages */
+    method = SSLv23_server_method();		/* create new server-method instance */
+    ctx = SSL_CTX_new(method);			/* create new context from method */
+    if ( ctx == NULL )
+    {
+        ERR_print_errors_fp(stderr);
+        abort();
+    }
+    return ctx;
+}
+
+/*---------------------------------------------------------------------*/
+/*--- LoadCertificates - load from files.                           ---*/
+/*---------------------------------------------------------------------*/
+void LoadCertificates(SSL_CTX* ctx, char* CertFile, char* KeyFile)
+{
+	/* set the local certificate from CertFile */
+    if ( SSL_CTX_use_certificate_file(ctx, CertFile, SSL_FILETYPE_PEM) <= 0 )
+    {
+        ERR_print_errors_fp(stderr);
+        abort();
+    }
+    /* set the private key from KeyFile (may be the same as CertFile) */
+    if ( SSL_CTX_use_PrivateKey_file(ctx, KeyFile, SSL_FILETYPE_PEM) <= 0 )
+    {
+        ERR_print_errors_fp(stderr);
+        abort();
+    }
+    /* verify private key */
+    if ( !SSL_CTX_check_private_key(ctx) )
+    {
+        fprintf(stderr, "Private key does not match the public certificate\n");
+        abort();
+    }
+}
 
 int main(int argc , char *argv[])
 {
@@ -106,10 +155,16 @@ int main(int argc , char *argv[])
       		exit(0);
   		}
 
+    SSL_CTX *ctx;
+    ctx = InitServerCTX();								/* initialize SSL */
+    LoadCertificates(ctx, "/home/pi/certs/domain.crt", "/home/pi/certs/domain.key");	/* load certs */
+    SSL * sslConnections[MAX_CLIENTS];
+
     int opt = TRUE;
-    int master_socket , addrlen , new_socket , client_socket[30] ,
-          max_clients = 30 , activity , valread , sd;
+    int master_socket , addrlen , new_socket , client_socket[MAX_CLIENTS] ,
+          max_clients = MAX_CLIENTS , activity , valread , sd;
     int max_sd;
+
     struct sockaddr_in address;
 
 
@@ -121,7 +176,7 @@ int main(int argc , char *argv[])
     const char clientFileNames[2][BUF_LEN] = {"Sensor Daemon Status","SQL Daemon Status"};
     //set of socket descriptors
     fd_set readfds;
-    char  tables[30][BUF_LEN+1];
+    char  tables[MAX_CLIENTS][BUF_LEN+1];
     //a message
     char *message = "ECHO Daemon v1.0 \r\n";
 
@@ -163,7 +218,7 @@ int main(int argc , char *argv[])
     printf("Listener on port %d \n", PORT);
 
     //try to specify maximum of 3 pending connections for the master socket
-    if (listen(master_socket, 30) < 0)
+    if (listen(master_socket, MAX_CLIENTS) < 0)
     {
         perror("listen");
         exit(EXIT_FAILURE);
@@ -173,6 +228,8 @@ int main(int argc , char *argv[])
     addrlen = sizeof(address);
     puts("Waiting for connections ...");
     int loops = 0;
+
+
     while(TRUE)
     {
         //clear the socket set
@@ -225,7 +282,6 @@ int main(int argc , char *argv[])
                 perror("accept");
                 exit(EXIT_FAILURE);
             }
-
             //inform user of socket number - used in send and receive commands
             printf("New connection , socket fd is %d , ip is : %s , port : %d \n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
             if(FD_ISSET(new_socket,&readfds)) {
@@ -251,10 +307,18 @@ int main(int argc , char *argv[])
                     break;
                 }
             }
+
+            SSL *ssl;
+            ssl = SSL_new(ctx);
+            SSL_set_fd(ssl, new_socket);
+            SSL_accept(ssl);
+            sslConnections[newIndex] = ssl;
             //buffer to read in whatever the client sends to us
             char buffer[BUF_LEN+1];  //data buffer of 2K
             //read in whatever the client is sending out
-            valread = read( sd , buffer, BUF_LEN);
+            valread = SSL_read(ssl,buffer,BUF_LEN);
+            sleep(1);
+
             //delared here, set once we know that we read in some valid input from the client socket
             char ** result;
             int disconnect = 0;
@@ -289,6 +353,7 @@ int main(int argc , char *argv[])
                     //Close the socket and mark as 0 in list for reuse
                     FD_CLR(sd,&readfds);
                     close( sd );
+                    SSL_free(ssl);
                     client_socket[newIndex] = 0;
                     strcpy(tables[newIndex],"");
                 }
@@ -410,15 +475,17 @@ int main(int argc , char *argv[])
 
                         //printf("FOUR \n");
                          //send command to client
-                        send(sd, line,strlen(line),0);
+                        SSL_write(ssl, line,strlen(line));
                     } else {
                         //printf("FAILED TO GET ROWS \n");
                         //if client does not have a valid table, then free the result, close the socket, and wipe the tables index thing
                         free(result);
                         FD_CLR(sd,&readfds);
                         close(sd);
+                        SSL_free(ssl);
                         client_socket[newIndex] = 0;
                         strcpy(tables[newIndex],"");
+
                     }
                     mysql_free_result(confresCheck);
                 }
@@ -435,9 +502,10 @@ int main(int argc , char *argv[])
             //if the socket descriptor is not 0, then we read
             if (FD_ISSET( sd , &readfds))
             {
-
+                SSL *ssl = sslConnections[i];
+                valread = SSL_read( ssl , buffer, BUF_LEN);
                 //check if incoming message has any contents, if not then disconnect the socket descriptor
-                if ((valread = read( sd , buffer, BUF_LEN)) <= 0 || client_socket[i]==0)
+                if (valread <= 0 || client_socket[i]==0)
                 {
                     //Somebody disconnected , get his details and print
                     getpeername(sd , (struct sockaddr*)&address , \
@@ -447,6 +515,7 @@ int main(int argc , char *argv[])
 
                     //Close the socket and mark as 0 in list for reuse
                     FD_CLR(sd,&readfds);
+                    SSL_free(ssl);
                     close( sd );
                     strcpy(tables[i],"");
                     client_socket[i] = 0;
@@ -456,7 +525,7 @@ int main(int argc , char *argv[])
                 else
                 {
 
-
+                    //printf("\n CCCC \n");
                    // printf("Information recieved: ");
                    // printf(buffer);
                    // printf("\n");
@@ -508,10 +577,11 @@ int main(int argc , char *argv[])
                     fflush(commandFile);
                     fclose(commandFile);
                     //send the command out to the client socket
-                    send(sd, line,strlen(line),0);
+                    SSL_write(ssl, line,strlen(line));
                     //free the split buffer
                     free(tempBuff);
                 }
+
             }
         }
     }
