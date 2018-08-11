@@ -157,7 +157,7 @@ int main(int argc , char *argv[])
 
     SSL_CTX *ctx;
     ctx = InitServerCTX();								/* initialize SSL */
-    LoadCertificates(ctx, "/home/pi/certs/domain.crt", "/home/pi/certs/domain.key");	/* load certs */
+    LoadCertificates(ctx, "/var/www/certs/domain.crt", "/var/www/certs/domain.key");	/* load certs */
     SSL * sslConnections[MAX_CLIENTS];
 
     int opt = TRUE;
