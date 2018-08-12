@@ -228,7 +228,6 @@ int main(int argc, char const *argv[])
         printf("Information sent: ");
         printf(lineTempPt);
         printf("\n");
-        exit(0);
         //read in new command info from the server
         valread = SSL_read( ssl , buffer, BUF_LEN);
         //print out the command that was read in
