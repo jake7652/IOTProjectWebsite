@@ -3,10 +3,12 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
 //MYSQL
-#include <my_global.h>
-#include <mysql.h>
+//#include </home/pi/Development/Daemon Source/TideGuageDaemon201806191426/my_global.h>
+#include <mysql/mysql.h>
 
 #include <pthread.h>
 
@@ -21,7 +23,7 @@
 #define PACKETHEADER1 '$' //Tide Guage Header Packet
 #define PACKETHEADER2 '*' //Tide Guage Data Packet
 #define PACKETTAIL '@'
-
+#define VERSION "1.0.0b"
 volatile int STOP=FALSE;
 
 struct SQLStatementComponets
@@ -85,12 +87,13 @@ main(int argc, char ** argv)
 {
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
-
+    printf("Version: " );
+    printf(VERSION);
+    printf("\n");
     printf("Daemon Started On: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     int DEBUG = 0;
     //id for the status print thread
     pthread_t *thread_id = malloc(sizeof(pthread_t));
-
     if(argc > 1) {
         if(strcmp(argv[1],"debug")==0) {
             DEBUG = 1;
