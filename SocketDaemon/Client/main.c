@@ -15,7 +15,7 @@
 #include <signal.h>
 #include <dirent.h>
 #include <ctype.h>
-#include <linux/reboot.h>
+#include <sys/reboot.h>
 
 #define PORT 8080
 #define BUF_LEN 2048
@@ -289,7 +289,8 @@ int main(int argc, char const *argv[])
 
             //10 is a command to reboot
             if(strcmp(buffer,"10")==0) {
-                reboot(0);
+                sync();
+                reboot(RB_AUTOBOOT);
             }
 
             //if the recieved command is 0 or 3 then we kill the daemons
