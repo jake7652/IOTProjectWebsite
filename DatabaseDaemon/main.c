@@ -7,9 +7,11 @@
 
 //MYSQL
 //#include <my_global.h>
-#include <mysql.h>
+#include <mysql/mysql.h>
 
 #include <pthread.h>
+
+#define VERSION "1.0.0b"
 
 volatile int STOP=0;
 
@@ -51,7 +53,9 @@ main(int argc, char** argv)
 
 time_t t = time(NULL);
 struct tm tm = *localtime(&t);
-
+printf("Version: ");
+printf(VERSION);
+printf("\n");
 printf("Daemon Started On: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 //printf("num args \n");
