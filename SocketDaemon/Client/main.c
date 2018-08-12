@@ -171,19 +171,19 @@ int main(int argc, char const *argv[])
     //create the socket on the local machine
     if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0)
     {
-        printf("\n Socket creation error \n");
-        return -1;
+       // printf("\n Socket creation error \n");
+       // return -1;
     }
     // Convert IPv4 and IPv6 addresses from text to binary form
     while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
     {
-        printf("\nInvalid address/ Address not supported \n");
-        return -1;
+       // printf("\nInvalid address/ Address not supported \n");
+       // return -1;
     }
     //connect to the socket server
     while(connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        printf("\nConnection Failed retry in one second \n");
+       // printf("\nConnection Failed retry in one second \n");
 
     }
     //char array and pointer to keep track of current command value
@@ -195,10 +195,12 @@ int main(int argc, char const *argv[])
     ssl = SSL_new(ctx);
     SSL_set_fd(ssl, sock);
     SSL_connect(ssl);
-    printf("Connected with %s encryption\n", SSL_get_cipher(ssl));
+    printf("Connection Encryption: %s \n \n", SSL_get_cipher(ssl));
     //hello = "DataTable";
     //infinite loop
+    int loopnum = 1;
     while(1) {
+        printf("--------------------------------- loop number %d ---------------------------------- \n",loopnum);
         //temp string for building the message that is sent to the socket server
         char lineTemp[BUF_LEN+1] = "";
         //append valid onto the start of the message string so the server can separate our message from others
@@ -231,16 +233,17 @@ int main(int argc, char const *argv[])
         //read in new command info from the server
         valread = SSL_read( ssl , buffer, BUF_LEN);
         //print out the command that was read in
-        printf("\n Data Read In: ");
+        printf("Data Read In: ");
         printf(buffer);
         printf("\n");
         sleep(1);
+
         //if we did not read anything, then there is a error with the server
         if(valread <= 0) {
             SSL_free(ssl);
             //print out that we had a error
-            printf("Server has gone away");
-            printf("\n");
+            printf("Connection Status: ");
+            printf("Bad Connection \n");
             //close the socket
             close(sock);
             sock = 0;
@@ -248,7 +251,7 @@ int main(int argc, char const *argv[])
 
             //recreate the socket and attempt to recreate every second
             while ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-                printf("\n Socket creation error \n");
+                //printf("\n Socket creation error \n");
                 sleep(1);
             }
 
@@ -261,27 +264,32 @@ int main(int argc, char const *argv[])
             // attempt to convert the ip address of the server and retry every second
             while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
             {
-                printf("\nInvalid address/ Address not supported \n");
+                //printf("\nInvalid address/ Address not supported \n");
                 sleep(1);
             }
 
             //attempt to reconnect the socket to the server every second
             while (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
             {
-                printf("\nConnection Failed retry in one second \n");
+                //printf("\nConnection Failed retry in one second \n");
 
                 sleep(1);
             }
             ssl = SSL_new(ctx);
             SSL_set_fd(ssl, sock);
             SSL_connect(ssl);
-            printf("Connected with %s encryption\n", SSL_get_cipher(ssl));
+            //printf("Connected with %s encryption\n", SSL_get_cipher(ssl));
 
-        } //end error handling conditional
+        } else {//end error handling conditional
+        printf("Connection Status: Good Connection \n");
+
+        }
         //append terminating character onto the end of the buffer
         buffer[valread] = '\0';
+
         //check whether we have recieved a new command vs the last one or this is the first command we have recieved since the daemon started
-        if(strcmp(commandMonitor,buffer)==0 || strcmp(commandMonitor,"-1")==0) {
+        if(strcmp(commandMonitor,buffer)==0 || strcmp(commandMonitor,"-1")==0 || valread<=0) {
+
             strcpy(commandMonitor,"");
             strcpy(commandMonitor,buffer);
         } else{
@@ -323,9 +331,15 @@ int main(int argc, char const *argv[])
             if(strcmp(buffer,"6") == 0) {
                 char * arguments[255] = {"/var/www/daemons/sensor.sh"};
                 exec_prog(arguments);
+                printf("\r                                                      ");
+                printf("\r");
+                printf("\033[A");
             } else if(strcmp(buffer,"7") == 0){
                 char * arguments[255] = {"/var/www/daemons/SQL.sh"};
                 exec_prog(arguments);
+                printf("\r                                                      ");
+                printf("\r");
+                printf("\033[A");
             }
             //print out the new command code we recieved
             printf("Command code recieved: ");
@@ -337,10 +351,34 @@ int main(int argc, char const *argv[])
             fflush(commandFile);
             fclose(commandFile);
     }
+
+
         //clear out the read buffer
         strcpy(buffer,"");
         //wait for one second before sending/recieving stuff from server
         sleep(1);
+        printf("\r                                                      ");
+        printf("\r");
+        printf("\033[A");
+
+        printf("\r                                                      ");
+        printf("\r");
+        printf("\033[A");
+
+        printf("\r                                                      ");
+        printf("\r");
+        printf("\033[A");
+
+        printf("\r                                                      ");
+        printf("\r");
+        printf("\033[A");
+        printf("\r                                                      ");
+        printf("\r");
+        printf("\033[A");
+        printf("\r                                                                     ");
+        printf("\r");
+        printf("\n");
+        loopnum++;
     } //end infinite loop
 
 
