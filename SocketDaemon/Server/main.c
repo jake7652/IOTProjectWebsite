@@ -174,7 +174,7 @@ int main(int argc , char *argv[])
     const int clientFiles = 3;
     const char commandFileName[] = "commands";
     const char clientFileNames[2][BUF_LEN] = {"Sensor Daemon Status","SQL Daemon Status"};
-
+    const char timeFile[] = "Last Update";
     const char commandControlFile[] = "Command Control Daemon Status";
     //set of socket descriptors
     fd_set readfds;
@@ -438,6 +438,19 @@ int main(int argc , char *argv[])
                         fprintf(socketFile,"CONNECTED");
                         fflush(socketFile);
                         fclose(socketFile);
+
+                        time_t t = time(NULL);
+                        struct tm tm = *localtime(&t);
+                        char timeString[30];
+                        strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S %Z", &tm);
+
+                        char timePath[BUF_LEN+1] = "";
+                        char * timePathPt = strcpy(timePath,tempLoc);
+                        timePathPt = strcat(timePath,timeFile);
+                        FILE *timeFileTemp = fopen(timePathPt,"w+");
+                        fprintf(timeFileTemp ,timeString);
+                        fflush(timeFileTemp );
+                        fclose(timeFileTemp );
                         //file pointer for the command file
                         FILE * commandFile;
                         //if the dir for the client does not exist, create the dir and files
@@ -552,6 +565,18 @@ int main(int argc , char *argv[])
                     char tablePath[BUF_LEN+1] = "";
                     char * tablePathPt = strcpy(tablePath,tables[i]);
 
+                    time_t t = time(NULL);
+                    struct tm tm = *localtime(&t);
+                    char timeString[30];
+                    strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S %Z", &tm);
+
+                    char timePath[BUF_LEN+1] = "";
+                    char * timePathPt = strcpy(timePath,tablePathPt);
+                    timePathPt = strcat(timePath,timeFile);
+                    FILE *timeFileTemp = fopen(timePathPt,"w+");
+                    fprintf(timeFileTemp ,timeString);
+                    fflush(timeFileTemp );
+                    fclose(timeFileTemp );
                     //loop through client files and write various parts of the read message to those file
                     for(int i2 = 1; i2 < clientFiles; i2++) {
                         //store the path of one daemon file
