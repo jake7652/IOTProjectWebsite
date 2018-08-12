@@ -22,7 +22,7 @@
 #define FALSE  0
 #define PORT 8080
 #define BUF_LEN 2048
-#define MAX_CLIENTS 4065
+#define MAX_CLIENTS 4000
 
 //function to split a string along a delimeter
 //you will need to call free() on the result of this function or else a mem leak will occur
@@ -174,6 +174,8 @@ int main(int argc , char *argv[])
     const int clientFiles = 3;
     const char commandFileName[] = "commands";
     const char clientFileNames[2][BUF_LEN] = {"Sensor Daemon Status","SQL Daemon Status"};
+
+    const char commandControlFile[] = "Command Control Daemon Status";
     //set of socket descriptors
     fd_set readfds;
     char  tables[MAX_CLIENTS][BUF_LEN+1];
@@ -349,7 +351,6 @@ int main(int argc , char *argv[])
                     printf("Host disconnected , ip %s , port %d \n" ,
                           inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
 
-
                     //Close the socket and mark as 0 in list for reuse
                     FD_CLR(sd,&readfds);
                     close( sd );
@@ -430,6 +431,13 @@ int main(int argc , char *argv[])
                         char commandPath[BUF_LEN+1] = "";
                         char * commandPathPt = strcpy(commandPath,tempLocPt);
                         commandPathPt = strcat(commandPath,commandFileName);
+                        char sPath[BUF_LEN+1] = "";
+                        char * sPathPt = strcpy(sPath,tempLoc);
+                        sPathPt = strcat(sPathPt,commandControlFile);
+                        FILE *socketFile = fopen(sPathPt,"w+");
+                        fprintf(socketFile,"CONNECTED");
+                        fflush(socketFile);
+                        fclose(socketFile);
                         //file pointer for the command file
                         FILE * commandFile;
                         //if the dir for the client does not exist, create the dir and files
@@ -512,7 +520,13 @@ int main(int argc , char *argv[])
                         (socklen_t*)&addrlen);
                     printf("Host disconnected , ip %s , port %d \n" ,
                           inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
-
+                    char sPath[BUF_LEN+1] = "";
+                    char * sPathPt = strcpy(sPath,tables[i]);
+                    sPathPt = strcat(sPathPt,commandControlFile);
+                    FILE *socketFile = fopen(sPathPt,"w+");
+                    fprintf(socketFile,"DISCONNECTED");
+                    fflush(socketFile);
+                    fclose(socketFile);
                     //Close the socket and mark as 0 in list for reuse
                     FD_CLR(sd,&readfds);
                     SSL_free(ssl);
