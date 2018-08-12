@@ -188,7 +188,7 @@ int main(int argc, char const *argv[])
     }
     //char array and pointer to keep track of current command value
     char commandMonitor[BUF_LEN+1];
-    char * commandMonitorPtr =strcpy(commandMonitor,"");
+    char * commandMonitorPtr =strcpy(commandMonitor,"-1");
     SSL_CTX *ctx;
     SSL *ssl;
     ctx = InitCTX();
@@ -280,8 +280,10 @@ int main(int argc, char const *argv[])
         } //end error handling conditional
         //append terminating character onto the end of the buffer
         buffer[valread] = '\0';
-        //check whether we have recieved a new command vs the last one
-        if(strcmp(commandMonitor,buffer)==0) {
+        //check whether we have recieved a new command vs the last one or this is the first command we have recieved since the daemon started
+        if(strcmp(commandMonitor,buffer)==0 || strcmp(commandMonitor,"-1")==0) {
+            strcpy(commandMonitor,"");
+            strcpy(commandMonitor,buffer);
         } else{
             //copy the buffer into the command value
             strcpy(commandMonitor,"");
