@@ -174,7 +174,7 @@ int main(int argc, char const *argv[])
     serv_addr.sin_port = htons(PORT);
 
     //create the socket on the local machine
-    if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0)
+    while ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0)
     {
        // printf("\n Socket creation error \n");
        // return -1;
@@ -308,16 +308,16 @@ int main(int argc, char const *argv[])
                 reboot(RB_AUTOBOOT);
             }
 
-            //if the recieved command is 0 or 3 then we kill the daemons
+            //if the recieved command is 0 or 3 or 7 or 6 then we kill the daemon
             //kill SQL daemon
-            if(strcmp(buffer,"0") == 0) {
+            if(strcmp(buffer,"0") == 0 || strcmp(buffer,"7") == 0) {
                 pid_t id = pID(daemonNames[0]);
                 if(id!=-1) {
                     kill(id,SIGKILL);
                 }
             }
             //kill sensor daemon
-            else if(strcmp(buffer,"3") == 0){
+            else if(strcmp(buffer,"3") == 0 || strcmp(buffer,"6") == 0){
                 pid_t id = pID(daemonNames[1]);
                 if(id!=-1) {
                     kill(id,SIGKILL);
@@ -334,22 +334,14 @@ int main(int argc, char const *argv[])
             */
             //code 6 is to start the sensor daemon
             if(strcmp(buffer,"6") == 0) {
-                char * arguments[255] = {"/var/www/daemons/sensor.sh"};
-                exec_prog(arguments);
-                printf("\r                                                      ");
-                printf("\r");
-                printf("\033[A");
+                exec_prog(sensorArgs);
             } else if(strcmp(buffer,"7") == 0){
-                char * arguments[255] = {"/var/www/daemons/SQL.sh"};
-                exec_prog(arguments);
-                printf("\r                                                      ");
-                printf("\r");
-                printf("\033[A");
+                exec_prog(sqlArgs);
             }
             //print out the new command code we recieved
-            printf("Command code recieved: ");
-            printf(buffer);
-            printf("\n");
+          //  printf("Command code recieved: ");
+          //  printf(buffer);
+          //  printf("\n");
             //print the command code out to file
             commandFile = fopen(commandFilePath,"w");
             fprintf(commandFile,buffer);
