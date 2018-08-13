@@ -129,6 +129,7 @@ int main(int argc, char const *argv[])
     const char * sensorArgs[255] = {"/var/www/daemons/sensor.sh","debug"};
     const char * sqlArgs[255] = {"/var/www/daemons/SQL.sh","debug"};
     exec_prog(sensorArgs);
+    sleep(5);
     exec_prog(sqlArgs);
     //line of the sql settings file
     char line [BUF_LEN+1] = "";
