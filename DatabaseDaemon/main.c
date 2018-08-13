@@ -149,18 +149,20 @@ fflush(statusFile);
 fclose(statusFile);
 
 //create the connection to the remote database
-    if (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
+    while (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
  		{
-      		finish_with_error(&con);
+      		//finish_with_error(&con);
+      		mysql_close(&con);
   		}
 statusFile = fopen(statusFilePath,"w");
 fprintf(statusFile,"CONNECT_LOCAL_DB");
 fflush(statusFile);
 fclose(statusFile);
 //create the connection to the local database
-    if (mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 3306, NULL, 0) == NULL)
+    while (mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 3306, NULL, 0) == NULL)
  		{
-      		finish_with_error(localCon);
+            mysql_close(localCon);
+      		//finish_with_error(localCon);
   		}
 
 unsigned long thing = mysql_thread_id(&con);
