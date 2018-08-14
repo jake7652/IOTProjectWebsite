@@ -129,7 +129,7 @@ background-color:#4CAF50;
 
 
 <!-- label for the table -->
-<p style="text-align: center; font-size: 24px;">Realtime sensor readings table</p>
+<p id="tableHeader" style="text-align: center; font-size: 24px;"></p>
 
 <!-- manually add the headers for each column but nothing else -->
 <table id="sensorsTable" class="display" style="width:100%">
@@ -241,7 +241,7 @@ background-color:#4CAF50;
 
 <!-- footer for the website showing when the website was last updated -->
 <footer>
-website last updated 7-21-2018 04:53
+website last updated 8-14-2018 09:40
 </footer>
 
 <script>
@@ -261,6 +261,8 @@ if(sessionStorage.getItem('Table') == null) {
 }
 //alert(sessionStorage.getItem('Table'));
 
+
+document.getElementById("tableHeader").innerHTML = "Realtime readings table for " + sessionStorage.getItem('Table');
 
 
 //converts the format that the SQL table uses to store time into a format used for the graph

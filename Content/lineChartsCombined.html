@@ -201,7 +201,7 @@ TO
 <!-- footer to show when the website was last updated -->
 <footer> 
 <br>
-Website last updated 2018-07-17 4:40
+Website last updated 2018-08-14 9:38
 </footer>
 
 
@@ -421,7 +421,7 @@ function drawPlots(fields,plotName,domain,realtime) {
   						y: temps[i2][i],
   						type: 'scatter',
   						name: sessionStorage.getItem('Tables').split(",")[i2] + " "+fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
-  						connectgaps: true,
+  						connectgaps: false,
 
 					};
 				} else {
@@ -433,7 +433,7 @@ function drawPlots(fields,plotName,domain,realtime) {
   						yaxis: y_axis.concat((i+1).toString()),
   						type: 'scatter',
   						name: sessionStorage.getItem('Tables').split(",")[i2] + " "+fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
-  						connectgaps: true,
+  						connectgaps: false,
 					};
 				}
 				traces[i+(i2*fields.length)] = tempTrace;

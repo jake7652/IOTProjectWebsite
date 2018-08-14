@@ -47,7 +47,7 @@ tr { height: 50px }
 <table id="pagesTable" class="display" style="width:100%">
   <thead>
   <tr>
-    <th style="font-size:25px;">Click on a button to go to a webpage</th>
+    <th style="font-size:25px;">Main menu</th>
   </tr>
 </thead>
 <tbody>
@@ -61,7 +61,7 @@ $.LoadingOverlay("hide");
 
 var userLoggedIn = false;
 var userPermissions = 0;
-$.ajax({ url: "/Account/usrStat.php",
+$.ajax({ url: "../Account/usrStat.php",
          async: false,
 	 type: "GET",
          dataType: 'json',
@@ -75,9 +75,9 @@ $.ajax({ url: "/Account/usrStat.php",
 });
 
 
-var pagesTitles = ['Register Account/Login','Account Profile','Remote System Management','Table view', 'Line chart view', 'Combined line chart view'  ];
-var pages = ['/Account/index.php','/Account/profile.php','/Content/management.html','/Content/table.html','/Content/lineCharts.html','/Content/lineChartsCombined.html'];
-var permissionNeeded = [0,1,3,0,0,0];
+var pagesTitles = ['Register Account/Login','Account Profile','Logout','Remote System Management','Table view', 'Line chart view', 'Combined line chart view'  ];
+var pages = ['../Account/index.php','../Account/profile.php','../Account/logout.php/','../Content/management.html','../Content/table.html','../Content/lineCharts.html','../Content/lineChartsCombined.html'];
+var permissionNeeded = [0,1,1,3,0,0,0];
 var table;
 
 
@@ -91,7 +91,11 @@ var table;
 	"search": "Page search:"
 
 	},
-	"ordering": false
+	"ordering": false,
+	searching: false,
+	"oLanguage": {
+		"sInfo": "Click on a button to go to a webpage. Last update: 2018-08-14 9:38"
+	}
         //"columnDefs": [ {
             //"targets": -1,
             //"data": null,
@@ -124,13 +128,12 @@ $('#pagesTable tbody').on( 'click', 'button', function () {
         
 	//redirect to the page that was selected by this button
 	//alert(this.value);
-	window.location.href = this.value;
+	window.location.replace(this.value);
         
     } );
 
 $.LoadingOverlay("hide");
 </script>
-
 
 
 
