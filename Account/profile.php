@@ -64,7 +64,11 @@ else {
           <a href="logout.php"><button class="button button-block" name="logout"/>Log Out</button></a>
 	  <br>
 	  <a href="/Content/index.html"><button class="button button-block" name="indexButton"/>Back to index</button></a>
-    </div>
+	  <br>
+	  <footer>
+	  Website last updated 2018-08-14 9:43
+	  </footer>    
+</div>
     
 <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
 <script src="js/index.js"></script>

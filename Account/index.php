@@ -15,7 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST')
 {
     if (isset($_POST['login'])) { //user logging in
 
-        require 'login.php';
+        
+	require 'login.php';
         
     }
     
@@ -109,8 +110,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST')
       </div><!-- tab-content -->
       <br>
       <a href="/Content/index.html"><button class="button button-block" name="indexButton"/>Back to index</button></a>
+	<br>
+	<footer>
+	Website last updated 2018-08-14 9:42
+	</footer>
 </div> <!-- /form -->
-  <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
 
     <script src="js/index.js"></script>
 

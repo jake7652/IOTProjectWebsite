@@ -1,5 +1,6 @@
 <?php
 
+//session_start();
 //database settings 
 $contents = Array();
 $handle = fopen("/var/www/databaseSettings", "r");

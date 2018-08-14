@@ -21,6 +21,9 @@ session_start();
     ?>
     </p>     
     <a href="index.php"><button class="button button-block"/>Home</button></a>
+    <footer>
+    Website last updated 2018-08-14 9:45
+    </footer>
 </div>
 </body>
 </html>
