@@ -434,10 +434,7 @@ int main(int argc , char *argv[])
                         char sPath[BUF_LEN+1] = "";
                         char * sPathPt = strcpy(sPath,tempLoc);
                         sPathPt = strcat(sPathPt,commandControlFile);
-                        FILE *socketFile = fopen(sPathPt,"w+");
-                        fprintf(socketFile,"CONNECTED");
-                        fflush(socketFile);
-                        fclose(socketFile);
+
 
                         time_t t = time(NULL);
                         struct tm tm = *localtime(&t);
@@ -447,10 +444,7 @@ int main(int argc , char *argv[])
                         char timePath[BUF_LEN+1] = "";
                         char * timePathPt = strcpy(timePath,tempLoc);
                         timePathPt = strcat(timePath,timeFile);
-                        FILE *timeFileTemp = fopen(timePathPt,"w+");
-                        fprintf(timeFileTemp ,timeString);
-                        fflush(timeFileTemp );
-                        fclose(timeFileTemp );
+
                         //file pointer for the command file
                         FILE * commandFile;
                         //if the dir for the client does not exist, create the dir and files
@@ -493,6 +487,16 @@ int main(int argc , char *argv[])
                         //copy trimmed line into the line var
                         strcpy(line,fTrim(line));
                         fclose(commandFile);
+
+                        FILE *socketFile = fopen(sPathPt,"w+");
+                        fprintf(socketFile,"CONNECTED");
+                        fflush(socketFile);
+                        fclose(socketFile);
+
+                        FILE *timeFileTemp = fopen(timePathPt,"w+");
+                        fprintf(timeFileTemp ,timeString);
+                        fflush(timeFileTemp );
+                        fclose(timeFileTemp );
 
                         //printf("FOUR \n");
                          //send command to client
