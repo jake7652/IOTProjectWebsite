@@ -149,7 +149,7 @@ fflush(statusFile);
 fclose(statusFile);
 
 //create the connection to the remote database
-    while (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1) == NULL)
+    while (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0) == NULL)
  		{
       		//finish_with_error(&con);
       		mysql_close(&con);
@@ -159,7 +159,7 @@ fprintf(statusFile,"CONNECT_LOCAL_DB");
 fflush(statusFile);
 fclose(statusFile);
 //create the connection to the local database
-    while (mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 3306, NULL, 0) == NULL)
+    while (mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0) == NULL)
  		{
             mysql_close(localCon);
       		//finish_with_error(localCon);
@@ -197,7 +197,7 @@ if(DEBUG) {
 //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
 fprintf(stderr, "%s\n", mysql_error(&con));
 }
-mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
 sleep(1);
 }
 
@@ -285,7 +285,7 @@ if(DEBUG) {
 fprintf(stderr, "%s\n", mysql_error(&con));
 }
 mysql_close(&con);
-mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
 sleep(1);
 }
 
@@ -484,8 +484,8 @@ mysql_close(&con);
 mysql_close(localCon);
 mysql_init(&con);
 localCon = mysql_init(NULL);
-mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
-mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
+mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0);
 sleep(1);
 }
 
@@ -532,8 +532,8 @@ mysql_close(&con);
 mysql_close(localCon);
 mysql_init(&con);
 localCon = mysql_init(NULL);
-mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
-mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
+mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0);
 sleep(1);
 }
 
@@ -564,8 +564,8 @@ mysql_close(&con);
 mysql_close(localCon);
 mysql_init(&con);
 localCon = mysql_init(NULL);
-mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 1);
-mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 1);
+mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
+mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0);
 sleep(1);
 }
 }
