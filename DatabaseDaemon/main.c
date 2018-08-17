@@ -3,6 +3,7 @@ DEVELOPMENT HEADER
 Author: Jacob Barnett
 Version: defined below
 Description: Takes the data from the local database table and commits it to a table in the remote database.
+END DEVELOPMENT HEADER
 */
 
 
@@ -19,7 +20,7 @@ Description: Takes the data from the local database table and commits it to a ta
 
 #include <pthread.h>
 
-#define VERSION "1.0.0b"
+#define VERSION "1.0.1b"
 
 volatile int STOP=0;
 
