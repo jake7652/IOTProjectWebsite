@@ -1,3 +1,11 @@
+/*
+DEVELOPMENT HEADER
+Author: Jacob Barnett
+Version: defined below
+Description: Takes the data from the arduino attached to this machine and inserts it into the local database.
+END DEVELOPMENT HEADER
+*/
+#define VERSION "1.0.1b"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -23,7 +31,7 @@
 #define PACKETHEADER1 '$' //Tide Guage Header Packet
 #define PACKETHEADER2 '*' //Tide Guage Data Packet
 #define PACKETTAIL '@'
-#define VERSION "1.0.0b"
+
 volatile int STOP=FALSE;
 
 struct SQLStatementComponets
