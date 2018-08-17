@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Reset process for the user's password
+END DEVELOPMENT HEADER 
+*/
 /* Password reset process, updates database with new user password */
 require 'db.php';
 session_start();

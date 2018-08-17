@@ -1,5 +1,11 @@
 <?php
-
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Writes a command value defined by the second argument for the sensor platform file defined by the first argument.
+END DEVELOPMENT HEADER 
+*/
 $platform = 'DataTable';
 $commandFile = 'commands';
 $value = "200";

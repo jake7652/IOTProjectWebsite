@@ -1,5 +1,12 @@
 <?php
-
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Grabs all the settings for the database from the database settings file and sets them to variable and then creates a sql connection.
+* This file is used by other php scripts so that this only needs to be done once.
+END DEVELOPMENT HEADER 
+*/
 //database settings 
 $contents = Array();
 $handle = fopen("/var/www/databaseSettings", "r");

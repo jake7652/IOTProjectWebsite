@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Requests the last time value for a given table(first argument)
+END DEVELOPMENT HEADER 
+*/
 //setting header to json
 header('Content-Type: application/json');
 

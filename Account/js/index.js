@@ -1,3 +1,10 @@
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Some javascript magic to highlight and unhighlight text areas and set the current active tab.
+END DEVELOPMENT HEADER 
+*/
 $('.form').find('input, textarea').on('keyup blur focus', function (e) {
   
   var $this = $(this),

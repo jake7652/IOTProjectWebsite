@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: A error message page that printed out when we have a user account error
+END DEVELOPMENT HEADER 
+*/
 /* Displays all error messages */
 session_start();
 ?>

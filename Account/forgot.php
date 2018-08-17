@@ -1,4 +1,12 @@
 <?php 
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Forgot password page that creates the form and email to reset a user password
+* when they forget
+END DEVELOPMENT HEADER 
+*/
 /* Reset your password form, sends reset.php password link */
 require 'db.php';
 session_start();

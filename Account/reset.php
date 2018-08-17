@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Actual reset password page when a user goes to the password reset page in their email.
+END DEVELOPMENT HEADER 
+*/
 /* The password reset form, the link to this page is included
    from the forgot.php email message
 */

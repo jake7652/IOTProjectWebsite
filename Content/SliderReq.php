@@ -1,4 +1,12 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Requests the row from the database for a specific table(second argument)
+* that has a time value closest to the value passed in(first argument).
+END DEVELOPMENT HEADER 
+*/
 //setting header to json
 header('Content-Type: application/json');
 

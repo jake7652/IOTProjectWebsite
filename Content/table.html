@@ -1,5 +1,13 @@
 <!DOCTYPE html>
 <html>
+<!--  
+DEVELOPMENT HEADER
+Author: Jacob Barnett
+Version: 1.0.0b
+Description: Displays the current sensor values for one sensor platform in table form and updates in realtime.
+Also permits the user to view previous values.
+END DEVELOPMENT HEADER
+-->
 <!-- offline source for jquery used for calling php script from javascript -->
 <script src="/lib/jquery-3.3.1.js"></script>
 <script src="/lib/jquery-ui/jquery-ui.min.js"></script>
@@ -327,6 +335,7 @@ function fieldNamesQuery(callback) {
 //used for updating the sensor data in realtime. Asks for the last (lines) of the sql table and then changes the appropriate table columns when done
 var currentUpdate = false;
 function tableSqlUpdate(field,lines,async) { 
+//var finished = false;
 	 currentUpdate = $.ajax({ url: "TableReq.php",
          async: async,
 	 type: "POST",

@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Gets the first entry of the RTCDataTime field for the table defined in the first argument.
+END DEVELOPMENT HEADER 
+*/
 //setting header to json
 header('Content-Type: application/json');
 

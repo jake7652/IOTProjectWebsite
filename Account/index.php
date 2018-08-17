@@ -1,7 +1,20 @@
 <?php 
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: User account login and registration page
+END DEVELOPMENT HEADER 
+*/
 /* Main page with two forms: sign up and log in */
 require 'db.php';
 session_start();
+if (isset($_SESSION['email'])){
+	header("location: /Content/index.html");
+}
+
+
+
 ?>
 <!DOCTYPE html>
 <html>

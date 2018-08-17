@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Gets the name of all the fields in a table defined by the first argument from the database.
+END DEVELOPMENT HEADER 
+*/
 //setting header to json
 header('Content-Type: application/json');
 

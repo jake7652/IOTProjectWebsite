@@ -1,5 +1,12 @@
 <?php
-
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Contains settings for the user account database and creates the sql connection to it 
+* Then returns all non empty tables.
+END DEVELOPMENT HEADER 
+*/
 //session_start();
 //database settings 
 $contents = Array();

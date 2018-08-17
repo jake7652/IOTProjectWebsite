@@ -1,4 +1,11 @@
 <?php 
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: The user verify page that a user is sent to when they press the link in their email.
+END DEVELOPMENT HEADER 
+*/
 /* Verifies registered user email, the link to this page
    is included in the register.php email message 
 */

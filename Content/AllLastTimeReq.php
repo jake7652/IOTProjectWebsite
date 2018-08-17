@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Requests the last entry of the RTCDataTime field from the database defined in db.php for all tables in one mysql query.
+END DEVELOPMENT HEADER 
+*/
 //setting header to json
 header('Content-Type: application/json');
 

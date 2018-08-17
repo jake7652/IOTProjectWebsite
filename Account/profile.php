@@ -1,6 +1,21 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Displays user name, email, and permission level for the site for their account.
+END DEVELOPMENT HEADER 
+*/
+
 /* Displays user information and some useful messages */
 session_start();
+
+if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
+    // last request was more than 30 minutes ago
+    session_unset();     // unset $_SESSION variable for the run-time 
+    session_destroy();   // destroy session data in storage
+}
+$_SESSION['LAST_ACTIVITY'] = time(); // update last activity time stamp
 
 // Check if user is logged in using the session variable
 if ( $_SESSION['logged_in'] != 1 ) {

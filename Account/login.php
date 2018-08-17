@@ -1,4 +1,12 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Page that actually logs a user in when the user presses the login button 
+* on the index page.
+END DEVELOPMENT HEADER 
+*/
 /* User login process, checks if user exists and password is correct */
 //session_start();
 // Escape email to protect against SQL injections

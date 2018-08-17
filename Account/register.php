@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Page that registers a user with the database when they press the register button
+END DEVELOPMENT HEADER 
+*/
 /* Registration process, inserts user info into the database 
    and sends account confirmation email message
  */

@@ -1,4 +1,11 @@
 <?php
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Registration/other operations success page.
+END DEVELOPMENT HEADER 
+*/
 /* Displays all successful messages */
 session_start();
 ?>

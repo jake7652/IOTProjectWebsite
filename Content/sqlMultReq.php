@@ -1,5 +1,15 @@
 <?php
-
+/*
+DEVELOPMENT HEADER
+* Author: Jacob Barnett
+* Version: 1.0.0b 
+* Description: Requests any number of sensor fields from the database(first argument)
+* for any number of rows of the database(second argument) 
+* for a specific timerange(third and fourth argument)
+* for a specific table in the database(5th argument).
+* Only requests every other rows when the database has more rows in the timerange than a set value.
+END DEVELOPMENT HEADER 
+*/
 require 'db.php';
 
 //setting header to json
