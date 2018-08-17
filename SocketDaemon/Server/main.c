@@ -1,3 +1,11 @@
+/*
+DEVELOPMENT HEADER
+Author: Jacob Barnett
+Version: Defined Below
+Description: Sends the status of the daemons and recieves commands through TLS socket communication to the webserver.
+*/
+#define VERSION "1.0.0b"
+
 //Example code: A simple server side code, which echos back the received message.
 //Handle multiple socket connections with select and fd_set on Linux
 #include <stdio.h>
