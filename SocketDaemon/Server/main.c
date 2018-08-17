@@ -2,7 +2,7 @@
 DEVELOPMENT HEADER
 Author: Jacob Barnett
 Version: Defined Below
-Description: Sends the status of the daemons and recieves commands through TLS socket communication to the webserver.
+Description: Handles incoming connections and receiving daemon status and sending commands to those connections
 */
 #define VERSION "1.0.0b"
 
