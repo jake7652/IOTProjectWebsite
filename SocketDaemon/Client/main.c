@@ -1,60 +1,71 @@
-// Client side C/C++ program to demonstrate Socket programming
+/*
+DEVELOPMENT HEADER
+Author: Jacob Barnett
+Version: Defined Below
+Description: Sends the status of the daemons and recieves commands through TLS socket communication to the webserver.
+*/
+#define VERSION "1.0.0b"
+
+//Example code: A simple server side code, which echos back the received message.
+//Handle multiple socket connections with select and fd_set on Linux
 #include <stdio.h>
-#include <sys/socket.h>
+#include <string.h>   //strlen
 #include <stdlib.h>
+#include <errno.h>
+#include <unistd.h>   //close
+#include <arpa/inet.h>    //close
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
-#include <string.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <sys/wait.h>
+#include <sys/time.h> //FD_SET, FD_ISSET, FD_ZERO macros
+//#include <sys/types.h>
+#include <sys/stat.h>
+//#include <unistd.h>
+#include <mysql/mysql.h>
 #include <resolv.h>
-#include <netdb.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include <sys/types.h>
-#include <signal.h>
-#include <dirent.h>
-#include <ctype.h>
-#include <sys/reboot.h>
-
+#include <mysql/mysql.h>
+#define TRUE   1
+#define FALSE  0
 #define PORT 8080
 #define BUF_LEN 2048
+#define MAX_CLIENTS 4000
 
-pid_t pID(const char* name) {
-	pid_t p = -1;
-	size_t i, j;
-	char* s = (char*)malloc(264);
-	char buf[128];
-	FILE* st;
-	DIR* d = opendir("/proc");
-	if (d == NULL) { free(s); return -1; }
-	struct dirent* f;
-	while ((f = readdir(d)) != NULL) {
-		if (f->d_name[0] == '.') continue;
-		for (i = 0; isdigit(f->d_name[i]); i++);
-		if (i < strlen(f->d_name)) continue;
-		strcpy(s, "/proc/");
-		strcat(s, f->d_name);
-		strcat(s, "/status");
-		st = fopen(s, "r");
-		if (st == NULL) { closedir(d); free(s); return -1; }
-		do {
-			if (fgets(buf, 128, st) == NULL) { fclose(st); closedir(d); free(s); return -1; }
-		} while (strncmp(buf, "Name:", 5));
-		fclose(st);
-		for (j = 5; isspace(buf[j]); j++);
-		*strchr(buf, '\n') = 0;
-		if (!strcmp(&(buf[j]), name)) {
-			sscanf(&(s[6]), "%d", &p);
-			//kill(p, SIGKILL);
-		}
-	}
-	closedir(d);
-	free(s);
-	return p;
+//function to split a string along a delimeter
+//you will need to call free() on the result of this function or else a mem leak will occur
+char ** splitString(str) {
+
+     int i;
+     int count = 0;
+     const char delims[] = ",";
+     char *result = NULL;
+     char **store = NULL;
+     char **tmp = NULL;
+     result = strtok(str, delims);
+     while (result != NULL) {
+          free(tmp);
+          tmp = malloc(count * sizeof(char *));
+          for (i=0; i<count; i++) {
+               tmp[i] = store[i];
+          }
+          free(store);
+          store = malloc((count + 1) * sizeof(char *));
+          for (i=0; i<count; i++) {
+               store[i] = tmp[i];
+          }
+          store[count] = result;
+          count++;
+         // printf("%s\n", result);
+
+          result = strtok(NULL, delims);
+     }
+
+     free(tmp);
+    // free(store);
+return store;
+
 }
-
-
 //trims off the newlines characters from the fgets read
 char * fTrim (char s[]) {
   int i = strlen(s)-1;
@@ -64,52 +75,17 @@ char * fTrim (char s[]) {
 }
 
 
-static int exec_prog(const char **argv)
-{
-    pid_t   my_pid;
-    int     status, timeout /* unused ifdef WAIT_FOR_COMPLETION */;
-
-    if (0 == (my_pid = fork())) {
-            if (-1 == execve(argv[0], (char **)argv , NULL)) {
-                    perror("child process execve failed [%m]");
-                    return -1;
-            }
-    }
-
-#ifdef WAIT_FOR_COMPLETION
-    timeout = 1000;
-
-    while (0 == waitpid(my_pid , &status , WNOHANG)) {
-            if ( --timeout < 0 ) {
-                    perror("timeout");
-                    return -1;
-            }
-            sleep(1);
-    }
-
-    printf("%s WEXITSTATUS %d WIFEXITED %d [status %d]\n",
-            argv[0], WEXITSTATUS(status), WIFEXITED(status), status);
-
-    if (1 != WIFEXITED(status) || 0 != WEXITSTATUS(status)) {
-            perror("%s failed, halt system");
-            return -1;
-    }
-
-#endif
-    return 0;
-}
-
 /*---------------------------------------------------------------------*/
-/*--- InitCTX - initialize the SSL engine.                          ---*/
+/*--- InitServerCTX - initialize SSL server  and create context     ---*/
 /*---------------------------------------------------------------------*/
-SSL_CTX* InitCTX(void)
+SSL_CTX* InitServerCTX(void)
 {   SSL_METHOD *method;
     SSL_CTX *ctx;
 
-    OpenSSL_add_all_algorithms();		/* Load cryptos, et.al. */
-    SSL_load_error_strings();			/* Bring in and register error messages */
-    method = SSLv23_client_method();		/* Create new client-method instance */
-    ctx = SSL_CTX_new(method);			/* Create new context */
+    OpenSSL_add_all_algorithms();		/* load & register all cryptos, etc. */
+    SSL_load_error_strings();			/* load all error messages */
+    method = SSLv23_server_method();		/* create new server-method instance */
+    ctx = SSL_CTX_new(method);			/* create new context from method */
     if ( ctx == NULL )
     {
         ERR_print_errors_fp(stderr);
@@ -118,267 +94,548 @@ SSL_CTX* InitCTX(void)
     return ctx;
 }
 
-int main(int argc, char const *argv[])
+/*---------------------------------------------------------------------*/
+/*--- LoadCertificates - load from files.                           ---*/
+/*---------------------------------------------------------------------*/
+void LoadCertificates(SSL_CTX* ctx, char* CertFile, char* KeyFile)
 {
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-    char timeString[30];
-    strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S %Z", &tm);
-    printf("Daemon Started On: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-    //start daemons at beginning of this in order to get rid of faulty status reporting when this daemon is running
-    const char * sensorArgs[255] = {"/var/www/daemons/sensor.sh","debug"};
-    const char * sqlArgs[255] = {"/var/www/daemons/SQL.sh","debug"};
-   // exec_prog(sensorArgs);
-   // sleep(5);
-   // exec_prog(sqlArgs);
-    //line of the sql settings file
-    char line [BUF_LEN+1] = "";
-    //all lines of the sql settings file
-    char file [10][BUF_LEN+1];
-    //table that this pi is set to write to in the SQL settings file
-    char table[BUF_LEN+1] = "";
-    //File to store the settings for the database
+	/* set the local certificate from CertFile */
+    if ( SSL_CTX_use_certificate_file(ctx, CertFile, SSL_FILETYPE_PEM) <= 0 )
+    {
+        ERR_print_errors_fp(stderr);
+        abort();
+    }
+    /* set the private key from KeyFile (may be the same as CertFile) */
+    if ( SSL_CTX_use_PrivateKey_file(ctx, KeyFile, SSL_FILETYPE_PEM) <= 0 )
+    {
+        ERR_print_errors_fp(stderr);
+        abort();
+    }
+    /* verify private key */
+    if ( !SSL_CTX_check_private_key(ctx) )
+    {
+        fprintf(stderr, "Private key does not match the public certificate\n");
+        abort();
+    }
+}
+
+int main(int argc , char *argv[])
+{
+//    printf("processing[  ");
+//    while(1) {
+//    printf("\b\b|]");
+//    fflush(stdout);
+//    usleep(5000);
+//    printf("\b\b/]");
+//    fflush(stdout);
+//    usleep(5000);
+//    printf("\b\b-]");
+//    fflush(stdout);
+//    usleep(5000);
+//    printf("\b\b\\]");
+//    fflush(stdout);
+//    usleep(5000);
+//    fflush(stdout);
+//    }
+//
+
+    //connection for the remote database. Used to help verify if a incoming connection is valid
+    MYSQL con;
+    mysql_init(&con);
+    //mysql_options(con,MYSQL_OPT_COMPRESS,1);
+
+    //char arrays for storing the contents of the databaseSettings
+   char line [255];
+   char file [10][255];
+   char table[] = "";
+
+    //File that stores the settings for the database
     FILE *plist = fopen("/var/www/databaseSettings", "r");
-
-    //directory of the client files
-    char clientsLoc[] = "/var/www/clients/";
-    int daemons = 3;
-    //all daemon related file paths
-    char * daemonNames[3] = {"SQLDaemon","SensorDaemon","commands"};
-    char * daemonPaths[3] = {"/var/www/clients/commitDaemon","/var/www/clients/sensorDaemon","/var/www/clients/commands"};
-    //path for the file containing the daemon commands
-    char commandFilePath[] = "/var/www/clients/commands";
-    //file pointer for the daemon command file
-    FILE * commandFile;
-    //go through each line of the SQL settings file
-    int i = 0;
+    int iter = 0;
+    //go through each line of the settings file
     while (fgets(line, sizeof(line), plist)) {
-        strcpy(file[i], fTrim(line));
-        strcpy(table, fTrim(line));
-        i++;
+        strcpy(file[iter], fTrim(line));
+        iter++;
     }
-    //address of the socket on this client
-    struct sockaddr_in address;
-    //sock status and read var
-    int sock = 0, valread;
-    //address of the socket server
-    struct sockaddr_in serv_addr;
-    //name of the table that this client writes to
-    char *hello = file[4];
-    //buffer that the socket reads into
-    char buffer[BUF_LEN+1] = {0};
+    //create the connection to the remote database
+    if (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0) == NULL)
+ 		{
+      		exit(0);
+  		}
 
-    //0 out the server address in memory
-    memset(&serv_addr, '0', sizeof(serv_addr));
-    //set the socket family and port
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
-
-    //create the socket on the local machine
-    while ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0)
-    {
-       // printf("\n Socket creation error \n");
-       // return -1;
-    }
-    // Convert IPv4 and IPv6 addresses from text to binary form
-    while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
-    {
-       // printf("\nInvalid address/ Address not supported \n");
-       // return -1;
-    }
-    //connect to the socket server
-    while(connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    {
-       // printf("\nConnection Failed retry in one second \n");
-
-    }
-    //char array and pointer to keep track of current command value
-    char commandMonitor[BUF_LEN+1];
-    char * commandMonitorPtr =strcpy(commandMonitor,"-1");
     SSL_CTX *ctx;
-    SSL *ssl;
-    ctx = InitCTX();
-    ssl = SSL_new(ctx);
-    SSL_set_fd(ssl, sock);
-    SSL_connect(ssl);
-    printf("Connection Encryption: %s \n \n", SSL_get_cipher(ssl));
-    //hello = "DataTable";
-    //infinite loop
-    int loopnum = 1;
-    while(1) {
-        printf("--------------------------------- loop number %d ---------------------------------- \n",loopnum);
-        //temp string for building the message that is sent to the socket server
-        char lineTemp[BUF_LEN+1] = "";
-        //append valid onto the start of the message string so the server can separate our message from others
-        char *lineTempPt = strcpy(lineTemp,"VALID,");
-        //append the table onto the message
-        lineTempPt = strcat(lineTemp,hello);
-        lineTempPt = strcat(lineTemp, ",");
-        //append the status of all the daemons onto the message string
-        for(int i = 0; i < daemons; i++ ){
-            if(pID(daemonNames[i]) != -1 || i == daemons-1) {
-                FILE * temp = fopen(daemonPaths[i],"r");
-                fgets(line, sizeof(line),temp);
-                lineTempPt = strcat(lineTemp,line);
-                lineTempPt = strcat(lineTemp, ",");
-                fflush(temp);
-                fclose(temp);
-            } else {
-                lineTempPt = strcat(lineTemp,"KILLED");
-                lineTempPt = strcat(lineTemp, ",");
-            }
-        }
-        //append a end onto the message that's sent to the socket server
-        lineTempPt = strcat(lineTemp, "END");
-        //send the message to the socket server
-        SSL_write(ssl,lineTempPt , strlen(lineTempPt));
-        //print out of the message that we sent to the remote server
-        printf("Information sent: ");
-        printf(lineTempPt);
-        printf("\n");
-        //read in new command info from the server
-        valread = SSL_read( ssl , buffer, BUF_LEN);
-        //print out the command that was read in
-        printf("Data Read In: ");
-        printf(buffer);
-        printf("\n");
-        sleep(1);
+    ctx = InitServerCTX();								/* initialize SSL */
+    LoadCertificates(ctx, "/var/www/certs/domain.crt", "/var/www/certs/domain.key");	/* load certs */
+    SSL * sslConnections[MAX_CLIENTS];
 
-        //if we did not read anything, then there is a error with the server
-        if(valread <= 0) {
-            SSL_free(ssl);
-            //print out that we had a error
-            printf("Connection Status: ");
-            printf("Bad Connection \n");
-            //close the socket
-            close(sock);
-            sock = 0;
+    int opt = TRUE;
+    int master_socket , addrlen , new_socket , client_socket[MAX_CLIENTS] ,
+          max_clients = MAX_CLIENTS , activity , valread , sd;
+    int max_sd;
+
+    struct sockaddr_in address;
 
 
-            //recreate the socket and attempt to recreate every second
-            while ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-                //printf("\n Socket creation error \n");
-                sleep(1);
-            }
+    //directory of the client files for the daemons
+    const char clientsLoc[] = "/var/www/clients/";
+    //number of files associated with the client daemons and commands
+    const int clientFiles = 3;
+    const char commandFileName[] = "commands";
+    const char clientFileNames[2][BUF_LEN] = {"Sensor Daemon Status","SQL Daemon Status"};
+    const char timeFile[] = "Last Update";
+    const char commandControlFile[] = "Command Control Daemon Status";
+    //set of socket descriptors
+    fd_set readfds;
+    char  tables[MAX_CLIENTS][BUF_LEN+1];
+    //a message
+    char *message = "ECHO Daemon v1.0 \r\n";
 
-            //0 out the server address in memory
-            memset(&serv_addr, '0', sizeof(serv_addr));
-            //set the socket family and port again since we probably need to change the port
-            serv_addr.sin_family = AF_INET;
-            serv_addr.sin_port = htons(PORT);
-
-            // attempt to convert the ip address of the server and retry every second
-            while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
-            {
-                //printf("\nInvalid address/ Address not supported \n");
-                sleep(1);
-            }
-
-            //attempt to reconnect the socket to the server every second
-            while (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-            {
-                //printf("\nConnection Failed retry in one second \n");
-
-                sleep(1);
-            }
-            ssl = SSL_new(ctx);
-            SSL_set_fd(ssl, sock);
-            SSL_connect(ssl);
-            //printf("Connected with %s encryption\n", SSL_get_cipher(ssl));
-
-        } else {//end error handling conditional
-        printf("Connection Status: Good Connection \n");
-
-        }
-        //append terminating character onto the end of the buffer
-        buffer[valread] = '\0';
-
-        //check whether we have recieved a new command vs the last one or this is the first command we have recieved since the daemon started
-        if(strcmp(commandMonitor,buffer)==0 || strcmp(commandMonitor,"-1")==0 || valread<=0) {
-
-            strcpy(commandMonitor,"");
-            strcpy(commandMonitor,buffer);
-        } else{
-            //copy the buffer into the command value
-            strcpy(commandMonitor,"");
-            strcpy(commandMonitor,buffer);
-
-            //10 is a command to reboot
-            if(strcmp(buffer,"10")==0) {
-                sync();
-                reboot(RB_AUTOBOOT);
-            }
-
-            //if the recieved command is 0 or 3 or 7 or 6 then we kill the daemon
-            //kill SQL daemon
-            if(strcmp(buffer,"0") == 0 || strcmp(buffer,"7") == 0) {
-                pid_t id = pID(daemonNames[0]);
-                if(id!=-1) {
-                    kill(id,SIGKILL);
-                }
-            }
-            //kill sensor daemon
-            else if(strcmp(buffer,"3") == 0 || strcmp(buffer,"6") == 0){
-                pid_t id = pID(daemonNames[1]);
-                if(id!=-1) {
-                    kill(id,SIGKILL);
-                }
-            }
-
-
-            //if we recieve a 6 or 7 then we have recieved a command to start one of the daemons. Starting them is done through a bash script so that a new term window is made
-            /* Contents of one of the scripts for reference
-            #!/bin/bash
-            killall SQLDaemon
-            DISPLAY=:0 x-terminal-emulator -e /var/www/daemons/SQLDaemon & disown
-            exit 0
-            */
-            //code 6 is to start the sensor daemon
-            if(strcmp(buffer,"6") == 0) {
-                exec_prog(sensorArgs);
-            } else if(strcmp(buffer,"7") == 0){
-                exec_prog(sqlArgs);
-            }
-            //print out the new command code we recieved
-          //  printf("Command code recieved: ");
-          //  printf(buffer);
-          //  printf("\n");
-            //print the command code out to file
-            commandFile = fopen(commandFilePath,"w");
-            fprintf(commandFile,buffer);
-            fflush(commandFile);
-            fclose(commandFile);
+    //initialise all client_socket[] to 0 so not checked
+    //and blank out the table names
+    for (int i = 0; i < max_clients; i++)
+    {
+        client_socket[i] = 0;
+        strcpy(tables[i],"");
     }
 
+    //create a master socket
+    if( (master_socket = socket(AF_INET , SOCK_STREAM , 0)) == 0)
+    {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
 
-        //clear out the read buffer
-        strcpy(buffer,"");
-        //wait for one second before sending/recieving stuff from server
-        sleep(1);
-        printf("\r                                                      ");
-        printf("\r");
-        printf("\033[A");
+    //set master socket to allow multiple connections ,
+    //this is just a good habit, it will work without this
+    if( setsockopt(master_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt,
+          sizeof(opt)) < 0 )
+    {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
 
-        printf("\r                                                      ");
-        printf("\r");
-        printf("\033[A");
+    //type of socket created
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons( PORT );
 
-        printf("\r                                                      ");
-        printf("\r");
-        printf("\033[A");
+    //bind the socket to localhost port 8888
+    if (bind(master_socket, (struct sockaddr *)&address, sizeof(address))<0)
+    {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("Listener on port %d \n", PORT);
 
-        printf("\r                                                      ");
-        printf("\r");
-        printf("\033[A");
-        printf("\r                                                      ");
-        printf("\r");
-        printf("\033[A");
-        printf("\r                                                                     ");
-        printf("\r");
-        printf("\n");
-        loopnum++;
-    } //end infinite loop
+    //try to specify maximum of 3 pending connections for the master socket
+    if (listen(master_socket, MAX_CLIENTS) < 0)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
 
+    //accept the incoming connection
+    addrlen = sizeof(address);
+    puts("Waiting for connections ...");
+    int loops = 0;
+
+
+    while(TRUE)
+    {
+        //clear the socket set
+        FD_ZERO(&readfds);
+
+        //add master socket to set
+        FD_SET(master_socket, &readfds);
+        max_sd = master_socket;
+
+        //add child sockets to set
+        for (int i = 0 ; i < max_clients ; i++)
+        {
+            //socket descriptor
+            sd = client_socket[i];
+
+            //if valid socket descriptor then add to read list
+            if(sd > 0)
+                FD_SET( sd , &readfds);
+
+            //highest file descriptor number, need it for the select function
+            if(sd > max_sd)
+                max_sd = sd;
+        }
+
+        struct timeval tout;
+        tout.tv_sec = 5;
+        tout.tv_usec = 0;
+
+        //wait for an activity on one of the sockets , timeout is NULL ,
+        //so wait indefinitely
+       // printf("\n");
+        activity = select( max_sd + 1 , &readfds , NULL , NULL , &tout);
+       // printf("Loops: %d", loops);
+       // printf("\n");
+       // printf("Activity: %d", activity);
+        loops++;
+       // printf("\n");
+        if ((activity < 0) && (errno!=EINTR))
+        {
+            printf("select error");
+        }
+
+        //If something happened on the master socket ,
+        //then its an incoming connection
+        if (FD_ISSET(master_socket, &readfds))
+        {
+            if ((new_socket = accept(master_socket,
+                    (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+            {
+                perror("accept");
+                exit(EXIT_FAILURE);
+            }
+            //inform user of socket number - used in send and receive commands
+            printf("New connection , socket fd is %d , ip is : %s , port : %d \n" , new_socket , inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
+            if(FD_ISSET(new_socket,&readfds)) {
+               // printf("SET \n");
+
+            } else {
+
+                //printf("NOT SET \n");
+            }
+
+            //index of the new socket in the table names array and the socket descripter array
+            int newIndex = -1;
+            //add new socket to array of sockets
+            for (int i = 0; i < max_clients; i++)
+            {
+                //if position is empty
+                if( client_socket[i] == 0 )
+                {
+                    client_socket[i] = new_socket;
+                    sd = client_socket[i];
+                    printf("Adding to list of sockets as %d\n" , i);
+                    newIndex = i;
+                    break;
+                }
+            }
+
+            SSL *ssl;
+            ssl = SSL_new(ctx);
+            SSL_set_fd(ssl, new_socket);
+            SSL_accept(ssl);
+            sslConnections[newIndex] = ssl;
+            //buffer to read in whatever the client sends to us
+            char buffer[BUF_LEN+1];  //data buffer of 2K
+            //read in whatever the client is sending out
+            valread = SSL_read(ssl,buffer,BUF_LEN);
+            sleep(1);
+
+            //delared here, set once we know that we read in some valid input from the client socket
+            char ** result;
+            int disconnect = 0;
+            //if to determine whether we were able to read in any information from the socket at all
+            if (valread <= 0 )
+                {
+                //if we weren't able to read any info or client disconnected, flag to disconnect
+                disconnect = 1;
+                } else { //else if we actually read some stuff into the buffer then check to see if we read in at least 5 characters(needed for next validation)
+                    if(strlen(buffer)>=5) {
+                        //if the buffer is 5 or more chars long then split the buffer by commas and store in result
+                        result = splitString(buffer);
+                        //if the first part of the buffer is not equal to VALID then flag for disconnect and free the result to prevent mem leaks
+                        if(strcmp(result[0],"VALID")!=0) {
+                            disconnect =1;
+                            free(result);
+                        }
+                    } else { //if the buffer was not long enough, flag for disconnect
+                        disconnect = 1;
+                    }
+
+                }
+                //after determining whether we should disconnect new client, disconnect the client if there is a flag for it
+                if(disconnect==1){
+                    //Somebody disconnected , get his details and print
+                    getpeername(sd , (struct sockaddr*)&address , \
+                        (socklen_t*)&addrlen);
+                    printf("Host disconnected , ip %s , port %d \n" ,
+                          inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
+
+                    //Close the socket and mark as 0 in list for reuse
+                    FD_CLR(sd,&readfds);
+                    close( sd );
+                    SSL_free(ssl);
+                    client_socket[newIndex] = 0;
+                    strcpy(tables[newIndex],"");
+                }
+
+                //if we are not flagged to disconnect, actually perform the initial setup for a new client
+                else
+                {
+                    //temp file location string for holding the client files dir and paths
+                    char tempLoc[BUF_LEN+1] = "";
+                    char * tempLocPt;
+                    tempLocPt = strcpy(tempLoc,clientsLoc);
+
+                    //set the string terminating NULL byte on the end
+                    //of the data read
+                    buffer[valread] = '\0';
+                    char tempBuff[BUF_LEN+1];
+
+                    char checkQuery[BUF_LEN+1];
+                    //pointer to the check query string so that I can print it out without seg faulting
+                    char *checkQueryPtr;
+                    //build the check query string
+                    //check query to further verify that the client has a valid SQL table in the remote DB
+                    checkQueryPtr = strcpy(checkQuery,"SHOW TABLES LIKE '");
+                    checkQueryPtr = strcat(checkQuery,result[1]);
+                    checkQueryPtr = strcat(checkQuery, "';");
+                    //print out the check query
+                  //  printf("\n");
+                   // printf(checkQueryPtr);
+                    //printf("\n");
+                    //the result variable for the table check
+                    MYSQL_RES *confresCheck;
+                   // printf("BBBBBBBBBBBBBBBBBBBB \n");
+                    //query to check if table exists. Attempt reconnect every 1s to SQL if we have a error
+                    while(mysql_query(&con,checkQueryPtr)) {
+                       // printf("MY SQL ERROR \n");
+                        //fprintf(stderr, "%s\n", mysql_error(&con));
+                        mysql_close(&con);
+                        mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
+                        printf("\n");
+                        sleep(1);
+                    }
+                   // printf("BBBBBBBBBBBBBBBBBBBB \n");
+
+                   // printf("DDDDDDDDDD \n");
+                   //store the result of the table present check in the result variable
+                    if((confresCheck = mysql_store_result(&con))){
+
+                    }
+                    //printf("DDDDDDDDDD \n");
+                    //if the client is attached to a valid table, then create files needed for it if they don't exist
+                    //and/or send out the current command to the client
+                    if(mysql_num_rows(confresCheck) != 0) {
+                        //printf("\n AAAAAAA \n");
+                        //copy over the table name into the buffer
+                        strcpy(buffer,result[1]);
+                       // printf("\n AAAAAAA \n");
+                        //free the result since we only need table name for this one
+                        free(result);
+                        //concat the table name onto the client dir
+                        tempLocPt = strcat(tempLoc, buffer);
+                        tempLocPt = strcat(tempLoc,"/");
+                        //copy over the table dir into the table array
+                        for(int i = 0; i < max_clients; i ++) {
+                            if(strcmp(tables[i],"")==0) {
+                                strcpy(tables[i],tempLoc);
+                                break;
+                            }
+                        }
+                       // printf("TWO \n");
+                        //used to determine whether the necessary directory exists
+                        struct stat st = {0};
+                        //char array and pointer to hold path to the command file
+                        //and append the command file path onto them
+                        char commandPath[BUF_LEN+1] = "";
+                        char * commandPathPt = strcpy(commandPath,tempLocPt);
+                        commandPathPt = strcat(commandPath,commandFileName);
+                        char sPath[BUF_LEN+1] = "";
+                        char * sPathPt = strcpy(sPath,tempLoc);
+                        sPathPt = strcat(sPathPt,commandControlFile);
+
+
+                        time_t t = time(NULL);
+                        struct tm tm = *localtime(&t);
+                        char timeString[30];
+                        strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S %Z", &tm);
+
+                        char timePath[BUF_LEN+1] = "";
+                        char * timePathPt = strcpy(timePath,tempLoc);
+                        timePathPt = strcat(timePath,timeFile);
+
+                        //file pointer for the command file
+                        FILE * commandFile;
+                        //if the dir for the client does not exist, create the dir and files
+                        if(stat(tempLocPt,&st)==-1) {
+                            //printf("directory does not exist so we have to create it  \n");
+                            //create the dir and set proper permissions with chmod since the param in mkdir does not work
+                            mkdir(tempLocPt,0777);
+                            chmod(tempLocPt,0777);
+                            //loop to create the daemons files in the dir
+                            for(int i = 0; i<clientFiles-1; i++) {
+                                //holds the file location
+                                char tempFileLoc[BUF_LEN+1] = "";
+                                char * tempFileLocPt;
+                                //concat the file location
+                                tempFileLocPt = strcpy(tempFileLoc,tempLoc);
+                                tempFileLocPt = strcat(tempFileLoc,clientFileNames[i]);
+                                //open the file in write append mode+ which will create if file not present
+                                FILE *temp = fopen(tempFileLocPt,"ab+");
+                                //change permissions on file to make it properly accessable
+                                chmod(tempFileLocPt,0777);
+                                //print a default state to the file then close it
+                                fprintf(temp,"9");
+                                fflush(temp);
+                                fclose(temp);
+                            }
+                            //open command file in write+ mode that'll open it for writing and create it if not present
+                            commandFile = fopen(commandPathPt,"w+");
+                            //set proper permissions for the file
+                            chmod(commandPathPt,0777);
+                            fprintf(commandFile,"9");
+                            fflush(commandFile);
+                            fclose(commandFile);
+                        }
+                       // printf("THREE \n");
+                        //if there is a valid table attached to client and dir exists, then we just read from command file and send command to client
+                        commandFile = fopen(commandPathPt,"r");
+                        char line[BUF_LEN+1] ="";
+                        //get the first line of the command file
+                        fgets(line,sizeof(line),commandFile);
+                        //copy trimmed line into the line var
+                        strcpy(line,fTrim(line));
+                        fclose(commandFile);
+
+                        FILE *socketFile = fopen(sPathPt,"w+");
+                        fprintf(socketFile,"CONNECTED");
+                        fflush(socketFile);
+                        fclose(socketFile);
+
+                        FILE *timeFileTemp = fopen(timePathPt,"w+");
+                        fprintf(timeFileTemp ,timeString);
+                        fflush(timeFileTemp );
+                        fclose(timeFileTemp );
+
+                        //printf("FOUR \n");
+                         //send command to client
+                        SSL_write(ssl, line,strlen(line));
+                    } else {
+                        //printf("FAILED TO GET ROWS \n");
+                        //if client does not have a valid table, then free the result, close the socket, and wipe the tables index thing
+                        free(result);
+                        FD_CLR(sd,&readfds);
+                        close(sd);
+                        SSL_free(ssl);
+                        client_socket[newIndex] = 0;
+                        strcpy(tables[newIndex],"");
+
+                    }
+                    mysql_free_result(confresCheck);
+                }
+
+        }
+
+        //else its some IO operation on some other socket
+        for (int i = 0; i < max_clients; i++)
+        {
+            //buffer for storing the read on the socket
+            char buffer[BUF_LEN+1];
+            //running socket descriptor
+            sd = client_socket[i];
+            //if the socket descriptor is not 0, then we read
+            if (FD_ISSET( sd , &readfds))
+            {
+                SSL *ssl = sslConnections[i];
+                valread = SSL_read( ssl , buffer, BUF_LEN);
+                //check if incoming message has any contents, if not then disconnect the socket descriptor
+                if (valread <= 0 || client_socket[i]==0)
+                {
+                    //Somebody disconnected , get his details and print
+                    getpeername(sd , (struct sockaddr*)&address , \
+                        (socklen_t*)&addrlen);
+                    printf("Host disconnected , ip %s , port %d \n" ,
+                          inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
+                    char sPath[BUF_LEN+1] = "";
+                    char * sPathPt = strcpy(sPath,tables[i]);
+                    sPathPt = strcat(sPathPt,commandControlFile);
+                    FILE *socketFile = fopen(sPathPt,"w+");
+                    fprintf(socketFile,"DISCONNECTED");
+                    fflush(socketFile);
+                    fclose(socketFile);
+                    //Close the socket and mark as 0 in list for reuse
+                    FD_CLR(sd,&readfds);
+                    SSL_free(ssl);
+                    close( sd );
+                    strcpy(tables[i],"");
+                    client_socket[i] = 0;
+                }
+
+                //Echo back the message that came in
+                else
+                {
+
+                    //printf("\n CCCC \n");
+                   // printf("Information recieved: ");
+                   // printf(buffer);
+                   // printf("\n");
+                    //set the string terminating NULL byte on the end
+                    //of the data read
+                    buffer[valread] = '\0';
+                    //split the read by the commas
+                    char ** tempBuff = splitString(buffer);
+                    //store the path of the client directory associated with this table
+                    char tablePath[BUF_LEN+1] = "";
+                    char * tablePathPt = strcpy(tablePath,tables[i]);
+
+                    time_t t = time(NULL);
+                    struct tm tm = *localtime(&t);
+                    char timeString[30];
+                    strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S %Z", &tm);
+
+                    char timePath[BUF_LEN+1] = "";
+                    char * timePathPt = strcpy(timePath,tablePathPt);
+                    timePathPt = strcat(timePath,timeFile);
+                    FILE *timeFileTemp = fopen(timePathPt,"w+");
+                    fprintf(timeFileTemp ,timeString);
+                    fflush(timeFileTemp );
+                    fclose(timeFileTemp );
+                    //loop through client files and write various parts of the read message to those file
+                    for(int i2 = 1; i2 < clientFiles; i2++) {
+                        //store the path of one daemon file
+                        char daemonPath[BUF_LEN+1];
+                        char * daemonPathPt = strcpy(daemonPath,tablePath);
+                        daemonPathPt = strcat(daemonPath,clientFileNames[i2-1]);
+                        //open the daemon file for writing
+                        FILE * daemonFile = fopen(daemonPathPt, "w");
+                        //write to the daemon file
+                        fprintf(daemonFile,tempBuff[(i2+1)]);
+                        //print out the file and what was written to it
+                       // printf("Daemon File: ");
+                       // printf(daemonPathPt);
+                       // printf("\n");
+                       // printf("Status: ");
+                       // printf(tempBuff[(i2+1)]);
+                       // printf("\n");
+                        //flush the file stream and close the file
+                        fflush(daemonFile);
+                        fclose(daemonFile);
+                    }
+                    //store the command file path
+                    char commandPath[BUF_LEN+1] = "";
+                    char * commandPathPt;
+                    commandPathPt = strcat(commandPath,tables[i]);
+                    commandPathPt = strcat(commandPath,commandFileName);
+                    //print the command file path
+                    //printf(commandPathPt);
+                    //printf("\n \n");
+                    //open the command file for reading
+                    FILE * commandFile = fopen(commandPathPt,"r");
+                    //get the first line of the commandFile and trim and copy it into a char array
+                    char line[BUF_LEN+1] ="";
+                    fgets(line,sizeof(line),commandFile);
+                    strcpy(line,fTrim(line));
+                    //flush and close the file
+                    fflush(commandFile);
+                    fclose(commandFile);
+                    //send the command out to the client socket
+                    SSL_write(ssl, line,strlen(line));
+                    //free the split buffer
+                    free(tempBuff);
+                }
+
+            }
+        }
+    }
 
     return 0;
 }
