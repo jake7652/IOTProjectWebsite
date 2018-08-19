@@ -8,6 +8,8 @@ END DEVELOPMENT HEADER
 */
 //include 'login.php';
 //require 'login.php';
+$logMessage = "TRY TO GOTO " . $_SERVER["HTTP_REFERER"];
+include "logging.php";
 session_start();
 if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
     // last request was more than 30 minutes ago

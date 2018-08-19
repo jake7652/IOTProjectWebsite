@@ -9,6 +9,9 @@ END DEVELOPMENT HEADER
 /* The password reset form, the link to this page is included
    from the forgot.php email message
 */
+$logMessage = "RESET REQUEST";
+include "logging.php";
+
 require 'db.php';
 session_start();
 

@@ -8,6 +8,11 @@ END DEVELOPMENT HEADER
 */
 /* Log out process, unsets and destroys session variables */
 session_start();
+$logMessage = "LOGOUT";
+include "logging.php";
+while(!$doneLogging) {
+	
+}
 session_unset();
 session_destroy();
  

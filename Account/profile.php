@@ -6,6 +6,8 @@ DEVELOPMENT HEADER
 * Description: Displays user name, email, and permission level for the site for their account.
 END DEVELOPMENT HEADER 
 */
+$logMessage = "PROFILE";
+include "logging.php";
 
 /* Displays user information and some useful messages */
 session_start();

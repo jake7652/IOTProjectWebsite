@@ -7,6 +7,9 @@ DEVELOPMENT HEADER
 END DEVELOPMENT HEADER 
 */
 /* Password reset process, updates database with new user password */
+$logMessage = "RESET PASSWORD";
+include "logging.php";
+
 require 'db.php';
 session_start();
 

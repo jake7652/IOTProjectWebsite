@@ -9,6 +9,8 @@ END DEVELOPMENT HEADER
 /* Verifies registered user email, the link to this page
    is included in the register.php email message 
 */
+$logMessage = "VERIFY";
+include "logging.php";
 require 'db.php';
 session_start();
 
