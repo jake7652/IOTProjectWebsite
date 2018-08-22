@@ -4,7 +4,7 @@ Author: Jacob Barnett
 Version: Defined Below
 Description: Handles incoming connections and receiving daemon status and sending commands to those connections
 */
-#define VERSION "1.0.0b"
+#define VERSION "1.0.1b"
 
 //Example code: A simple server side code, which echos back the received message.
 //Handle multiple socket connections with select and fd_set on Linux
@@ -121,6 +121,12 @@ void LoadCertificates(SSL_CTX* ctx, char* CertFile, char* KeyFile)
 
 int main(int argc , char *argv[])
 {
+    printf("%s%s\n", "Version ",VERSION);
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char timeString[30];
+    strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S %Z", &tm);
+    printf("Server Started On: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 //    printf("processing[  ");
 //    while(1) {
 //    printf("\b\b|]");
@@ -513,8 +519,15 @@ int main(int argc , char *argv[])
                         //printf("FAILED TO GET ROWS \n");
                         //if client does not have a valid table, then free the result, close the socket, and wipe the tables index thing
                         free(result);
+                       //Somebody disconnected , get his details and print
+                        getpeername(sd , (struct sockaddr*)&address , \
+                            (socklen_t*)&addrlen);
+                        printf("Host disconnected , ip %s , port %d \n" ,
+                          inet_ntoa(address.sin_addr) , ntohs(address.sin_port));
+
+                        //Close the socket and mark as 0 in list for reuse
                         FD_CLR(sd,&readfds);
-                        close(sd);
+                        close( sd );
                         SSL_free(ssl);
                         client_socket[newIndex] = 0;
                         strcpy(tables[newIndex],"");
