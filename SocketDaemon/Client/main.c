@@ -132,6 +132,7 @@ int main(int argc, char const *argv[])
     char timeString[30];
     strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S %Z", &tm);
     printf("Daemon Started On: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    printf("%s%s\n","Version: ",VERSION);
     //start daemons at beginning of this in order to get rid of faulty status reporting when this daemon is running
     const char * sensorArgs[255] = {"/var/www/daemons/sensor.sh","debug"};
     const char * sqlArgs[255] = {"/var/www/daemons/SQL.sh","debug"};
@@ -362,25 +363,25 @@ int main(int argc, char const *argv[])
         strcpy(buffer,"");
         //wait for one second before sending/recieving stuff from server
         sleep(1);
-        printf("\r                                                      ");
+        printf("\r                                                                                              ");
         printf("\r");
         printf("\033[A");
 
-        printf("\r                                                      ");
+        printf("\r                                                                                              ");
         printf("\r");
         printf("\033[A");
 
-        printf("\r                                                      ");
+        printf("\r                                                                                              ");
         printf("\r");
         printf("\033[A");
 
-        printf("\r                                                      ");
+        printf("\r                                                                                              ");
         printf("\r");
         printf("\033[A");
-        printf("\r                                                      ");
+        printf("\r                                                                                              ");
         printf("\r");
         printf("\033[A");
-        printf("\r                                                                     ");
+        printf("\r                                                                                              ");
         printf("\r");
         printf("\n");
         loopnum++;
