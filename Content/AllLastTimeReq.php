@@ -21,7 +21,7 @@ $query = sprintf("SELECT TABLE_NAME,TABLE_ROWS FROM information_schema.tables WH
 $result = $mysqli->query($query);
 
 
-//var_dump($result);
+//var_dump($mysqli);
 //exit(0);
 $tables = Array();
 $index = 0;
