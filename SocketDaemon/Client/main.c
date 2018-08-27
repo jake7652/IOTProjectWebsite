@@ -4,7 +4,7 @@ Author: Jacob Barnett
 Version: Defined Below
 Description: Sends the daemons status and recieves commands from the webserver through TLS socket communication.
 */
-#define VERSION "1.0.0b"
+#define VERSION "1.0.2b"
 // Client side C/C++ program to demonstrate Socket programming
 #include <stdio.h>
 #include <sys/socket.h>
@@ -244,7 +244,12 @@ int main(int argc, char const *argv[])
         printf("Information sent: ");
         printf(lineTempPt);
         printf("\n");
+
         //read in new command info from the server
+        while(SSL_pending(ssl)) {
+            SSL_write(ssl,lineTempPt , strlen(lineTempPt));
+            sleep(1);
+        }
         valread = SSL_read( ssl , buffer, BUF_LEN);
         //print out the command that was read in
         printf("Data Read In: ");
