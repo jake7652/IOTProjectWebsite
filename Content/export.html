@@ -441,7 +441,7 @@ function firstDateCallback(output) {
 //called after the first date is set and we have the last date in the local database to setup the slider
 function lastDateCallback(output) {
 	lastDate = sqlToSlider(output["RTCDataTime"]);
-	selectedRange = [sliderToSql(firstDate,"00:00:00"),sliderToSql(lastDate,"00:00:00")];
+	selectedRange = [sliderToSql(firstDate,"00:00:00"),sliderToSql(lastDate,"23:59:59")];
 	selectedMax = new Date(lastDate.getTime() + 86400*1000);
   		$(function() {
    			 $( "#slider-range" ).slider({
@@ -477,7 +477,7 @@ function dateSlider() {
     	}
     	ajaxCalls = [];
 	    	
-	selectedRange = [sliderToSql(selectedMin,"00:00:00"),sliderToSql(selectedMax,"23:59:59")];
+	selectedRange = [sliderToSql(selectedMin,"00:00:00"),sliderToSql(selectedMax,"00:00:00")];
 	//alert(selectedRange);
 }
 
