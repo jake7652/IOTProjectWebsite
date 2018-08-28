@@ -48,8 +48,7 @@ else { // Email doesn't already exist in a database, proceed...
         $_SESSION['logged_in'] = true; // So we know the user has logged in
         $_SESSION['message'] =
                 
-                 "Confirmation link has been sent to $email, please verify
-                 your account by clicking on the link in the message!";
+                 "Your account has been created, but it is not activated.";
 
         // Send registration confirmation link (verify.php)
         $to      = $email;

@@ -1,0 +1,594 @@
+<head>
+<!--  
+DEVELOPMENT HEADER
+Author: Jacob Barnett
+Version: 1.0.0b
+Description: Page where a user can display sensor data in line chart form
+for various sensors for one sensor platform at a time.
+END DEVELOPMENT HEADER
+-->
+<!-- offline source of plotly API used for graphing the plot -->
+<script src="/lib/plotly-latest.min.js"></script>
+<!-- offline source for jquery used for calling php script from javascript -->
+<script src="/lib/jquery-3.3.1.js"></script>
+<!-- offline source for the loading overlay of the website -->
+<script src="/lib/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
+<!-- jquery ui for the sliders -->
+<script src="/lib/jquery-ui/jquery-ui.min.js"></script>
+
+<script src="/lib/database.js"></script>
+
+<link rel="stylesheet" href="/lib/jquery-ui/jquery-ui.min.css">
+<script src="/lib/jquery.redirect.js"></script>
+</head>
+<body>
+
+
+
+<style>
+
+/* styling for the toolbar at the top of the chart. This moves it to the left */
+.js-plotly-plot .plotly .modebar {
+
+left:0%;
+
+}
+
+/* styling for the toolbar at the top of the chart. This moves it to the left */
+.ui-slider-horizontal {
+width:100%;
+height: 12px;
+display:block;
+float:left;
+padding-bottom: 5px;
+padding-top: 5px;
+}
+
+/* formatting for the slider buttons inside the sliders */
+.ui-slider .ui-slider-handle {
+height: 130%;
+width: 1%;
+padding-left: 5px;
+
+}
+
+/* formatting for the graph button next to the date slider */
+.graphbutton { 
+display: block;
+border: none;
+width: 100%;
+background-color: #4CAF50;
+font-size: 16px;
+cursor: pointer;
+text-align: center;
+
+}
+/* what happens when the user hovers over the graph button */
+.graphbutton:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+
+/* separator between the graph button and the range slider */
+.separator {
+width: 1%;
+display:inline;
+float: left;
+}
+
+/* formatting for the date range slider for the graph */
+.divLeft {
+width:83%;
+display:block;
+float:left;
+
+}
+
+
+
+.indexbutton {
+display: block;
+border: none;
+cursor: pointer;
+width: 100%;
+height: 50px;
+font-size: 16px;
+text-align-last:center;
+background-color:#4CAF50;
+
+}
+
+.indexbutton:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+</style>
+<!-- Main Plot element div. -->
+
+
+<p style="text-align: left; font-size: 20px;" ></p>
+
+
+<!-- label for the table -->
+<p id="tableHeader" style="text-align: center; font-size: 24px;"></p>
+
+
+
+<!-- fieldset encompassing the slider, and the elements associated with the slider -->
+<fieldset>
+
+<!-- top right header for the slider section -->
+<legend>Slide custom timerange</legend>
+
+<!-- slider label div making the first "line" of the slider fieldset -->
+<div style="width:100%">
+
+<!-- paragraph containing the label for the slider -->
+<p>
+  <label for="amount">Date range:</label>
+  <input type="text" id="amount" style="border: 0; color: #f6931f; font-weight: bold;" size="100"/>
+</p>
+</div>
+
+<!-- Slider div -->
+<div id="slider-range" class="divLeft"></div>
+
+<!-- separator between the slider and the graph button for the slider -->
+<span class = "separator" style="height: 10px;"><br></span>
+
+<!-- graph button for the slider -->
+<input type='button' class="graphbutton" id='prevData' style="display:inline; width:15%; float:left; font-size:17px" value='Lock in timerange' onClick='dateSlider()'>
+
+<br><!-- create some trailing whitespace on the slider fieldset -->
+</fieldset><!-- end slider fieldset -->
+
+<br>
+
+<!-- checkboxes to graph other sensor platforms -->
+<form>
+<fieldset> 
+<legend>Select measurements to export</legend>
+<span>
+<span id="sensors">    <!-- container for the checkboxes --> 
+    <!-- Bunch of spans for the checkboxes so that they are inline of each other -->
+   
+   
+   
+</span> <!-- End checkbox container div -->
+<!-- Button following the checkboxes calling the checkbox function when it is pressed -->
+<input type="button" onclick="sensorSelectHandler('sensor');" value="Lock in fields" />
+</span>
+</fieldset>
+</form>
+
+
+<!-- Start and end prompt label paragraph -->
+<p>
+ 
+</p>
+
+<fieldset>
+<legend>Select custom timerange(yyyy-mm-dd hh:mm:ss 24hour format)</legend> 
+<!-- Start input box -->
+<input type="text" id='start_time' placeholder="Start Date"/>
+
+<!-- Span inline separator -->
+<span>
+TO
+</span>
+
+<!-- End input box -->
+<input type='text' id='end_time' placeholder="End Date">
+
+<!-- start and end submit button to call the goTo() function to handle the input -->
+<input type='button' id='link_str' value='Lock In timerange' onClick='goTo()'>
+
+</fieldset>
+
+<br>
+
+
+<fieldset>
+<legend>Export to xls(UTF 8)</legend>
+<input type='button' id='export_button' class= "indexbutton" value='Export' onClick='exportFields()'>
+</select>
+</fieldset>
+
+<br>
+
+<fieldset>
+<legend>Select sensor platform</legend>
+<select id='table_select' onChange="changeTable(this.value)" style="width: 100%; height: 50px; font-size: 16px; text-align-last:center; background-color: #4CAF50;">
+</select>
+</fieldset>
+
+<br> 
+
+<fieldset>
+<legend>Go back to index</legend>
+<input type='button' id='back_button' class= "indexbutton" value='Go Back' onClick='goBack()'>
+</select>
+</fieldset>
+
+<!-- footer to show when the website was last updated -->
+<footer> 
+<br>
+Website last updated 2018-07-17 4:40
+</footer>
+
+
+
+
+
+
+<script>
+
+var windowWidth = window.innerWidth; //used for setting the graph's size
+var windowHeight = window.innerHeight; //used for setting the graph's size
+
+var MIN_MAX = database.MIN_MAX;
+var LABELS  = database.LABELS;
+
+var UNITS  = database.UNITS;
+
+//This is used so that we can request a specific graph to be made when redirecting to the page from the table display page for instance
+
+var sensor = ["PressureTemperature"];
+if(sessionStorage.getItem('sensor') != null) {
+	sensor = sessionStorage.getItem('sensor').split(",");
+} 
+
+
+if(sessionStorage.getItem('Table') == null) {
+//set the default table from the database that the table on the website pulls from
+sessionStorage.setItem('Table', 'DataTable');
+}
+
+document.getElementById("tableHeader").innerHTML = "Export page for " + sessionStorage.getItem('Table');
+
+
+//converts the format that the table uses to display time to the format that our SQL table uses to store it
+function plotToSql(date) {
+	var ret = "".concat(date.substring(0,4),date.substring(5,7),date.substring(8,10),date.substring(11,13),date.substring(14,16),date.substring(17,19));
+	if(date.length == 10) {
+		ret = ret.concat("000000");
+	} 
+	return ret;
+}
+
+var ajaxCalls = new Array(); //all current Ajax calls on the plot. Keeping track of these in order to abort them when the plot is redrawn
+//ajax call using jquery to sqlMult req for the fields in the database for N lines 
+function getFromSql(field,lines,domain,callback) {
+var ret = null;
+ajaxCalls[ajaxCalls.length] = 
+	 $.ajax({ url: "sqlMultReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [field,lines,plotToSql(domain[0]),plotToSql(domain[1]),sessionStorage.getItem('Table')]},
+         success: function(output) {
+		    callback(output);
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+//calls for the names of the tables in the database
+function tableNamesQuery(callback) { 
+	 ret = null;
+	 $.ajax({ url: "TableNameReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
+         success: function(output) {
+	 	callback(output);
+	 
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+
+
+
+var interval ; //the variable used for the running plot update loop
+var currentFields; //used to keep track of what is currently graphed so that I can use this if a user enters a custom start and end date in
+//draw the plots at plotName dive for the given array of fields and given time domain
+
+
+
+
+
+
+</script> <!-- End main plot script -->
+	
+<script>
+//Selected timerange for the export
+var selectedRange = false;
+
+//handles what happens when the user presses the checkboxes for graphing sensors
+function sensorSelectHandler(checkboxName) {
+    //abort all ajax calls
+    for(var i = 0; i < ajaxCalls.length; i++) {
+	ajaxCalls[i].abort();
+    }
+    ajaxCalls = [];
+    //stop the updater loop
+    clearInterval(interval);
+    //get all of the checkboxes and put them in a array
+    var checkboxes = document.querySelectorAll('input[name="' + checkboxName + '"]:checked'), values = [];
+    Array.prototype.forEach.call(checkboxes, function(el) {
+        values.push(el.value);
+    });
+    sessionStorage.setItem('sensor',values);
+
+    return values;
+    
+}
+</script> <!-- End checkbox script -->
+
+
+
+<!-- Script handling user input for the custom range -->
+<script> 
+function goTo()
+{
+    
+    ///window.scrollTo(0,0); //scroll up to top of the page after the user presses the button
+    //get start and end value from their corresponding inputs
+    var start = document.getElementById('start_time').value;
+    var end = document.getElementById('end_time').value;
+    //debug alerts
+     //alert(start);
+    //alert(end);
+    //alert(currentFields);
+    
+    //abort all ajax calls
+    for(var i = 0; i < ajaxCalls.length; i++) {
+	ajaxCalls[i].abort();
+    }
+    ajaxCalls = [];
+
+    selectedRange = [plotToSql(start),plotToSql(end)];
+    //alert(selectedRange);
+ 
+}
+
+// show the loading overlay as the slider is set up
+$.LoadingOverlay("show");
+//slider script
+//calls for the first line of the RTC data time field
+function firstTimeQuery(callback) { 
+	 ret = null;
+	 $.ajax({ url: "FirstTimeReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //no arguments needed for this
+         success: function(output) {
+	 	callback(output);
+	 
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+//ajax call using jquery to TableReq req for the fields in the database for N lines. This is for inital table data calls 
+function sliderSql(field,lines,callback) {
+var ret = null;
+	 $.ajax({ url: "TableReq.php",
+         async: true,
+	 type: "POST",
+         dataType: 'json',
+	 data: {arguments: [sessionStorage.getItem('Table')]}, //the line argument is not actually passed in and is just a holdover from another function
+         success: function(output) {
+	 	  
+		    callback(output);
+		    
+}
+		
+});
+return ret; //return the result of the ajax call
+}
+
+//conversion from the format that our sql table uses to store time to the format that the slider uses to display it
+function sqlToSlider(date) {
+	var formatted = "".concat(date.substring(0,4),"-",date.substring(4,6),"-",date.substring(6,8),"T",date.substring(8,10),":",date.substring(10,12),":",date.substring(12,14),"Z");
+
+	return new Date(formatted);
+}
+
+
+//conversion from the format that our slider uses to the format the plot uses
+function sliderToPlot(date) {
+	return "".concat(date.getFullYear(),"-",(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),"-",((date.getDate()<10) ? '0' +date.getDate() : date.getDate()));
+
+	return new Date(formatted);
+}
+
+function sliderToSql(date,time) {
+
+	//have to do some formatting using concat and some nested condensed if elses
+	return "".concat(date.getFullYear(),(((date.getMonth()+1)<10) ? '0' + (date.getMonth()+1) : (date.getMonth()+1)),((date.getDate()<10) ? '0' +date.getDate() : date.getDate()),time.substring(0,2),time.substring(3,5),time.substring(6,8));
+//return date.getFullYear();
+}
+
+
+var firstDate = false;
+var lastDate = false;
+
+var selectedMin = false;
+var selectedMax = false;
+
+
+//callback run when the ajax call to get the first date in the local database is done
+function firstDateCallback(output) {
+	firstDate = sqlToSlider(output["RTCDataTime"]);
+	selectedMin = firstDate;
+	//get the last date and call the lastDateCallback after we get the first date
+	sliderSql("RTCDataTime",1,lastDateCallback);
+}
+
+//called after the first date is set and we have the last date in the local database to setup the slider
+function lastDateCallback(output) {
+	lastDate = sqlToSlider(output["RTCDataTime"]);
+	selectedRange = [sliderToSql(firstDate,"00:00:00"),sliderToSql(lastDate,"00:00:00")];
+	selectedMax = new Date(lastDate.getTime() + 86400*1000);
+  		$(function() {
+   			 $( "#slider-range" ).slider({
+      				range: true,
+     				min: firstDate.getTime() + Math.floor(firstDate.getTimezoneOffset()*60*1000), //first date in millis with timezone accounted for
+      				max: selectedMax.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000), //last date in millis with timezone accounted for
+      				step: 1, //step is 1 millis for smoother scrolling
+      				values: [ firstDate.getTime(), selectedMax.getTime() + Math.floor(lastDate.getTimezoneOffset()*60*1000)], 
+      				slide: function( event, ui ) { 
+ 					//as we slide we have to update the slider label and the min and max 
+        				$( "#amount" ).val( (new Date(ui.values[ 0 ]).toDateString() ) + " - " + (new Date(ui.values[ 1 ])).toDateString() );
+					selectedMin = new Date(ui.values[0]);
+					selectedMax = new Date(ui.values[1]);
+      				}
+    			});
+		//set the default values of the label to the min and max date
+    		$( "#amount" ).val( (new Date($( "#slider-range" ).slider( "values", 0 )).toDateString()) +
+     		" - " + (new Date($( "#slider-range" ).slider( "values", 1 ))).toDateString());
+  	});
+	$.LoadingOverlay("hide"); //hide the loading overlay as we are done loading this 
+}
+
+firstTimeQuery(firstDateCallback);
+
+//function called when the user selectes the graph button next to the range slider
+function dateSlider() {
+
+	//scroll to top of the page
+	//window.scrollTo(0,0);
+	//abort all ajax calls
+    	for(var i = 0; i < ajaxCalls.length; i++) {
+		ajaxCalls[i].abort();
+    	}
+    	ajaxCalls = [];
+	    	
+	selectedRange = [sliderToSql(selectedMin,"00:00:00"),sliderToSql(selectedMax,"00:00:00")];
+	//alert(selectedRange);
+}
+
+
+function fieldNamesQuery(callback) {
+ 	 ret = null;
+	 $.ajax({ url: "FieldNamesReq.php",
+         	async: true,
+		type: "POST",
+         	dataType: 'json',
+	 	data: {arguments: [sessionStorage.getItem('Table')]}, //Just use the first table that we select so we can only display overlapping sensors
+         	success: function(output) {
+	 		callback(output);
+	 
+		    
+		}
+		
+	});
+	return ret; //return the result of the ajax call
+
+
+}
+
+//callback populate the table selector dropdown menu
+function populateTables(tables) {
+	//get the dropdown menu element
+	select = document.getElementById('table_select');
+	for (var i = 0; i < tables.length; i++){
+
+   		//create a new option element
+    		var opt = document.createElement('option');
+    		//set the value of the option
+    		opt.value = tables[i];
+    		//set the display value of the option
+   		opt.innerHTML = tables[i];
+    		//append the option onto the select menu
+    		select.appendChild(opt);
+    		//set the default to the currently selected table
+   		if(select.options[i].value == sessionStorage.getItem('Table')){
+    			select.options[i].defaultSelected = true;
+    		}
+	}
+//hide the loading overlay when we are done populating the selector
+$.LoadingOverlay("hide");
+}
+//show the loading overlay as we request the tables from the database
+$.LoadingOverlay("show");
+//request the table names of the database
+tableNamesQuery(populateTables);
+
+//function called when we select a new table
+function changeTable(table) {
+	//show loading overlay when we choose a new table
+	$.LoadingOverlay("show");
+	//set the table to the updated selection
+	sessionStorage.setItem('Table', table);
+	sessionStorage.setItem('sensor',currentFields);
+	//scroll to top of the page when we select a new table
+	//window.scrollTo(0,0);
+	//refresh the page after the table changes because i'm too lazy to bother functioniz-ing everything
+	location.reload();
+}
+
+//fields to not include in the checkbox options
+var ignoredFields = database.IGNORED_FIELDS;
+function populateSensorCheckboxes(flds) {
+	//alert("AAAAAAAAA");
+	for(var i = 0; i < flds.length; i++){
+		if(!ignoredFields.includes(flds[i])) {
+			var spTemp = document.createElement("span");
+			var inTemp = document.createElement("INPUT");
+			var lbTemp = document.createElement("LABEL");
+			inTemp.setAttribute("type","checkbox");
+			inTemp.setAttribute("name","sensor");
+			inTemp.setAttribute("value",flds[i]+"");
+			if(sensor.includes(flds[i])){
+				inTemp.checked = true;
+			}
+			lbTemp.for = "sensor";
+			//just the name of the field in mysql
+			lbTemp.innerHTML = " "+flds[i]+" ";
+			//for a "nice" label that pulls from labels for a different name than the field in mysql
+			//lbTemp.innerHTML = " "+((flds[i] in LABELS) ? LABELS[flds[i]] : flds[i])+" ";
+			spTemp.appendChild(inTemp);
+			spTemp.appendChild(lbTemp);
+			document.getElementById("sensors").appendChild(spTemp);
+		}
+	}
+
+}
+fieldNamesQuery(populateSensorCheckboxes);
+
+
+function goBack(){
+	$.LoadingOverlay("show");
+	window.location.href = '/Content/index.html';
+}
+
+
+function exportFields() {
+//download("thing.xls","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+sensorSelectHandler('sensor');
+
+//var redirect = '/Content/export.php';
+//alert(selectedRange);
+$.redirect('/Content/export.php', {'arguments':[sessionStorage.getItem('sensor'),selectedRange[0],selectedRange[1],sessionStorage.getItem('Table')]}); 
+
+//$.redirectPost(redirect, {data: arguments: });
+
+}
+</script>
+
+
+</body>

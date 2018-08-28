@@ -67,8 +67,7 @@ else {
           if ( !$active ){
               echo
               '<div class="info">
-              Account is unverified, please confirm your email by clicking
-              on the email link!
+              Account is unverified please send a email to jacob8462@gmail.com to request it to be activated
               </div>';
           }
           

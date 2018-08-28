@@ -25,11 +25,14 @@ $contents = Array();
 $clientDir = '/var/www/clients/';
 $clientDirInner = scandir($clientDir);
 for($i = 2; $i < sizeof($clientDirInner); $i++) {
-$contents[$clientDirInner[$i]] = Array();
+//$contents[$clientDirInner[$i]] = Array();
+$contents[$i-2] = Array();
+$contents[$i-2][0] = $clientDirInner[$i];
 $tempFiles = scandir($clientDir . $clientDirInner[$i]);
-for($i2 = 0; $i2 < sizeof($tempFiles); $i2++) {
+for($i2 = 1; $i2 < sizeof($tempFiles); $i2++) {
 if($tempFiles[$i2] != "." && $tempFiles[$i2] != "..") {
-$contents[$clientDirInner[$i]][$i2-2] = file_get_contents($clientDir . $clientDirInner[$i] . "/" . $tempFiles[$i2]);
+$contents[$i-2][$i2-1] = file_get_contents($clientDir . $clientDirInner[$i] . "/" . $tempFiles[$i2]);
+//$contents[$clientDirInner[$i]][$i2-1] = file_get_contents($clientDir . $clientDirInner[$i] . "/" . $tempFiles[$i2]);
 }
 }
 

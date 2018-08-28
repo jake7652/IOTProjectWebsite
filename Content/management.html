@@ -241,7 +241,7 @@ var currentUpdate = false;
 //calls for the first line of the RTC data time field
 function lastTimesQuery(callback) { 
 	 ret = null;
-	 $.ajax({ url: "AllLastTimeReq.php",
+	 $.ajax({ url: "DaemonFileReq.php",
          async: true,
 	 type: "POST",
          dataType: 'json',
@@ -259,7 +259,7 @@ return ret; //return the result of the ajax call
 //calls for the names of all tables in the database
 function tableNamesQuery(callback) { 
 	 ret = null;
-	 $.ajax({ url: "TableNameReq.php",
+	 $.ajax({ url: "DaemonFileReq.php",
          async: true,
 	 type: "POST",
          dataType: 'json',
@@ -363,16 +363,16 @@ for(var i = 0; i < tables.length; i++) {
 //add a row to the table containing the SQL table name, the last time that table updated, the status of the daemons associated with that table,
 //and buttons to start and stop each daemon
 	table.row.add( [
-		tables[i],
-		daemonStatus[tables[i]][1],
-		daemonStatus[tables[i]][0],
-		daemonStatus[tables[i]][2],
-		daemonStatus[tables[i]][3],
-		"<button class=graphbutton value =" +tables[i] +",6>Start</button>",
-		"<button class=graphbutton value =" + tables[i] +",3>Stop</button>",
-		"<button class=graphbutton value ="+ tables[i] + ",7>Start</button>",
-		"<button class=graphbutton value =" +tables[i]+ ",0>Stop</button>",
-		"<button class=graphbutton value =" +tables[i]+ ",10>Reboot</button>",
+		daemonStatus[i][0],
+		daemonStatus[i][2],
+		daemonStatus[i][1],
+		daemonStatus[i][3],
+		daemonStatus[i][4],
+		"<button class=graphbutton value =" +daemonStatus[i][0] +",6>Start</button>",
+		"<button class=graphbutton value =" +daemonStatus[i][0] +",3>Stop</button>",
+		"<button class=graphbutton value ="+daemonStatus[i][0] + ",7>Start</button>",
+		"<button class=graphbutton value =" +daemonStatus[i][0]+ ",0>Stop</button>",
+		"<button class=graphbutton value =" +daemonStatus[i][0]+ ",10>Reboot</button>",
 ]
 ).draw(true);
 }
@@ -416,10 +416,10 @@ function runningLastTimesCallback(output) {
  //for all tables update the last update time and the daemon status for each row in the table
  for(var i = 0; i < tables.length; i++) {
          var tempData = table.row(i).data();
-	 tempData[1] = daemonStatus[tables[i]][1];
-	 tempData[2] = daemonStatus[tables[i]][0];
-	 tempData[3] = daemonStatus[tables[i]][2];
-	 tempData[4] = daemonStatus[tables[i]][3];
+	 tempData[1] = daemonStatus[0][2];
+	 tempData[2] = daemonStatus[0][1];
+	 tempData[3] = daemonStatus[0][3];
+	 tempData[4] = daemonStatus[0][4];
          table.row(i).data(tempData); 
 	 }
 doneUpdating = true;
