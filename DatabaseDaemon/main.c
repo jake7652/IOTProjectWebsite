@@ -5,7 +5,8 @@ Version: defined below
 Description: Takes the data from the local database table and commits it to a table in the remote database.
 END DEVELOPMENT HEADER
 */
-#define VERSION "1.0.2b"
+#define VERSION "1.0.3b"
+#define SQL_TIMEOUT 10
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -13,6 +14,11 @@ END DEVELOPMENT HEADER
 #include <termios.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <netdb.h>
 
 //MYSQL
 //#include <my_global.h>
@@ -59,9 +65,72 @@ void *statusThread(void *vargp)
     return NULL;
 }
 
+int is_network_up(char *chkhost, unsigned short chkport)
+{
+    int sock = -1;
+    struct addrinfo * res, *rp;
+    int ret = 0;
+    char sport[10];
+    snprintf(sport, sizeof sport, "%d", chkport);
+
+    struct addrinfo hints = { .ai_socktype=SOCK_STREAM };
+
+    if (getaddrinfo(chkhost, sport, &hints, &res))
+    {
+        perror("gai");
+        return 0;
+    }
+
+    for (rp = res; rp && !ret; rp = rp->ai_next)
+    {
+        sock = socket(rp->ai_family, rp->ai_socktype,
+                      rp->ai_protocol);
+        if (sock == -1) continue;
+        if (connect(sock, rp->ai_addr, rp->ai_addrlen) != -1)
+        {
+            char node[200], service[100];
+            getnameinfo(res->ai_addr, res->ai_addrlen, node, sizeof node, service, sizeof
+                        service, NI_NUMERICHOST);
+
+            //printf("Success on %s, %s\n", node, service);
+            ret = 1;                  /* Success */
+        }
+        close(sock);
+    }
+    freeaddrinfo(res);
+
+    return ret;
+}
+struct arg_struct
+{
+    char * ip ;
+    int port ;
+    char * statusFilePath ;
+};
+void *databaseUpCheck(void *vargp)
+{
+    struct arg_struct *args = (struct arg_struct *)vargp;
+    while(1)
+    {
+        int isUp = is_network_up(args->ip,args->port);
+        if(isUp==0)
+        {
+//printf("thing\n");
+            FILE * statusFile = fopen(args->statusFilePath,"w");
+            fprintf(statusFile,"CANNOT_CONNECT_TO_DB");
+            fflush(statusFile);
+            fclose(statusFile);
+        }
+        sleep(5);
+    }
+
+}
+
 main(int argc, char** argv)
 {
 
+
+    //argv[1] = "debug";
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     printf("Version: ");
@@ -76,26 +145,7 @@ main(int argc, char** argv)
 //printf("\n");
 
     int DEBUG = 0;
-    //id for the status print thread
-    pthread_t *thread_id = malloc(sizeof(pthread_t));
 
-    if(argc > 1)
-    {
-        if(strcmp(argv[1],"debug")==0)
-        {
-            DEBUG = 1;
-
-
-        }
-    }
-    else
-    {
-//pthread_yield();
-        pthread_create(thread_id,NULL,statusThread,NULL);
-//pthread_create(&thread_id, NULL, statusThread, NULL);
-//pthread_join(thread_id, NULL);
-
-    }
     char status[1023] = "";
     char *statusPt;
 
@@ -141,24 +191,35 @@ main(int argc, char** argv)
     }
 
 
+    mysql_library_init(0,NULL,NULL);
     //connection for the remote database
-    MYSQL con;
-    mysql_init(&con);
-
-
+    MYSQL * con = mysql_init(con);
+    if(!con)
+    {
+        //exit(0);
+    }
+    unsigned int sqlTimeout = 10;
+    mysql_options(con,MYSQL_OPT_COMPRESS,1);
+    //exit(0);
     //connection for the local database
-    MYSQL *localCon = mysql_init(NULL);
-
-    if (&con == NULL)
+    MYSQL *localCon = mysql_init(localCon);
+    //mysql_options(localCon,MYSQL_OPT_CONNECT_TIMEOUT,&sqlTimeout);
+    //mysql_options(localCon,MYSQL_OPT_READ_TIMEOUT,&sqlTimeout);
+    //mysql_options(localCon,MYSQL_OPT_WRITE_TIMEOUT,&sqlTimeout);
+    mysql_ssl_set(con,"/var/www/certs/mysql/client-key.pem","/var/www/certs/mysql/client-cert.pem","/var/www/certs/mysql/ca.pem",NULL,NULL);
+    //mysql_options(con,MYSQL_OPT_CONNECT_TIMEOUT,&sqlTimeout);
+    //mysql_options(con,MYSQL_OPT_WRITE_TIMEOUT,&sqlTimeout);
+    //mysql_options(con,MYSQL_READ_DEFAULT_FILE,"/var/www/daemons/my.cnf");
+    //printf("%s\n",mysql_error(con));
+    if (con == NULL)
     {
         if(DEBUG)
         {
-            fprintf(stderr, "%s\n", mysql_error(&con));
+            fprintf(stderr, "%s\n", mysql_error(con));
         }
-        exit(1);
+        //exit(1);
     }
-    mysql_options(&con,MYSQL_OPT_COMPRESS,1);
-
+    // mysql_options(con,MYSQL_OPT_COMPRESS,1);
 
     statusFile = fopen(statusFilePath,"w");
     fprintf(statusFile,"CONNECT_REMOTE_DB");
@@ -166,42 +227,71 @@ main(int argc, char** argv)
     fclose(statusFile);
 
     //create the connection to the remote database
-    while (mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0) == NULL)
+    while (!mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 0))
     {
-        //finish_with_error(&con);
-        mysql_close(&con);
+        //finish_with_error(con);
+        //mysql_close(con);
+        //printf("AAAAA\n");
     }
+
+    struct arg_struct args;
+    args.ip = file[0];
+    args.port = 3306;
+    args.statusFilePath = statusFilePath;
+    pthread_t *dbThread_id = malloc(sizeof(pthread_t));
+    pthread_create(dbThread_id,NULL,databaseUpCheck,(void *)&args);
     statusFile = fopen(statusFilePath,"w");
     fprintf(statusFile,"CONNECT_LOCAL_DB");
     fflush(statusFile);
     fclose(statusFile);
     //create the connection to the local database
-    while (mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0) == NULL)
+    while (!mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0))
     {
-        mysql_close(localCon);
+        //mysql_close(localCon);
         //finish_with_error(localCon);
     }
 
-    unsigned long thing = mysql_thread_id(&con);
+    //unsigned long thing = mysql_thread_id(con);
+    // int flags = fcntl(mysql_get_socket(con),F_GETFL,0);
+    // fcntl(mysql_get_socket(con),F_SETFL,flags | O_NONBLOCK);
+    printf("Connected to database with encryption: ");
+    printf("%s\n",mysql_get_ssl_cipher(con));
+
+    //id for the status print thread
+    pthread_t *thread_id = malloc(sizeof(pthread_t));
+    if(argc > 1)
+    {
+        if(strcmp(argv[1],"debug")==0)
+        {
+            DEBUG = 1;
 
 
+        }
+    }
+    else if(DEBUG == 0)
+    {
+        //pthread_yield();
+        pthread_create(thread_id,NULL,statusThread,NULL);
 
+        //pthread_create(&thread_id, NULL, statusThread, NULL);
+        //pthread_join(thread_id, NULL);
 
+    }
 
 //for(int i = 0; i < localFields; i++)
 //{
 //  printf("Field %u is %s\n", i, fields[i].name);
 //}
 //exit(0);
-//int n = snprintf(NULL,0,"%lu",mysql_thread_id(&con));
+//int n = snprintf(NULL,0,"%lu",mysql_thread_id(con));
 //assert(n>0);
 //char buffer[n+1];
-//int c = snprintf(buffer,n+1,"%lu",mysql_thread_id(&con));
+//int c = snprintf(buffer,n+1,"%lu",mysql_thread_id(con));
 //assert(buffer[n]=='\0');
 //assert(c==n);
 //printf(buffer);
 //printf("\n");
-//printf(mysql_stat(&con));
+//printf(mysql_stat(con));
 //printf("\n");
     //char array to store the query that checks to see if the table we want exists
     char checkQuery[255];
@@ -218,19 +308,19 @@ main(int argc, char** argv)
     fprintf(statusFile,"CHECK_TABLE_EXISTS");
     fflush(statusFile);
     fclose(statusFile);
-    while(mysql_query(&con, checkQuery))
+    while(mysql_query(con, checkQuery))
     {
         if(DEBUG)
         {
             //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-            fprintf(stderr, "%s\n", mysql_error(&con));
+            fprintf(stderr, "%s\n", mysql_error(con));
         }
-        mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
+        mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 0);
         sleep(1);
     }
 
     //store the result of the table present check in the result variable
-    confresCheck = mysql_store_result(&con);
+    confresCheck = mysql_store_result(con);
 
     if(DEBUG)
     {
@@ -308,7 +398,7 @@ main(int argc, char** argv)
         fprintf(statusFile,"CREATE_NEW_TABLE");
         fflush(statusFile);
         fclose(statusFile);
-        mysql_query(&con, tableQuery);
+        mysql_query(con, tableQuery);
         //exit(0);
     }
     if(DEBUG)
@@ -349,15 +439,16 @@ main(int argc, char** argv)
     fprintf(statusFile,"GET_LAST_UPDATE");
     fflush(statusFile);
     fclose(statusFile);
-    while(mysql_query(&con, lastQuery))
+    while(mysql_query(con, lastQuery))
     {
         if(DEBUG)
         {
             //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-            fprintf(stderr, "%s\n", mysql_error(&con));
+            fprintf(stderr, "%s\n", mysql_error(con));
         }
-        mysql_close(&con);
-        mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
+        while(!mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 0)) {
+        sleep(1);
+        }
         sleep(1);
     }
 
@@ -367,7 +458,7 @@ main(int argc, char** argv)
 
 
     //store the result of the last line query
-    confresTime = mysql_store_result(&con);
+    confresTime = mysql_store_result(con);
 
 
     //if there is a row with a time string, store it in the last time variable, otherwise the last time variable will just be ""
@@ -558,27 +649,32 @@ main(int argc, char** argv)
                     }
 
                     //send the query to the the server and wait until the server is ready to recieve the query
-                    while(mysql_query(&con, command))
+                    while(mysql_query(con, command))
                     {
                         connectionInterrupted = 1;
                         if(DEBUG)
                         {
                             //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-                            fprintf(stderr, "%s\n", mysql_error(&con));
+                            fprintf(stderr, "%s\n", mysql_error(con));
+
                         }
                         statusFile = fopen(statusFilePath,"w");
                         char tempStatus[] = "REMOTE_SQL_ERROR:";
-                        char *tempStatusPt = strcat(tempStatus,mysql_error(&con));
+                        char *tempStatusPt = strcat(tempStatus,mysql_error(con));
                         fprintf(statusFile,tempStatusPt);
                         fflush(statusFile);
                         fclose(statusFile);
-
-                        mysql_close(&con);
-                        mysql_close(localCon);
-                        mysql_init(&con);
-                        localCon = mysql_init(NULL);
-                        mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
-                        mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0);
+                        // mysql_close(con);
+                        //mysql_close(localCon);
+                        //con = mysql_init(con);
+                        //localCon = mysql_init(NULL);
+                        while(!mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 0))
+                        {
+                            sleep(1);
+                        }
+                        // while(!mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0)) {
+                        // sleep(1);
+                        // }
                         sleep(1);
                     }
                     statusFile = fopen(statusFilePath,"w");
@@ -615,26 +711,31 @@ main(int argc, char** argv)
                 printf("\n");
             }
             //query the server to insert the rows with same fault tolerance in case we lose connection
-            while(mysql_query(&con, command))
+            while(mysql_query(con, command))
             {
                 connectionInterrupted = 1;
                 if(DEBUG)
                 {
                     //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-                    fprintf(stderr, "%s\n", mysql_error(&con));
+                    fprintf(stderr, "%s\n", mysql_error(con));
                 }
                 statusFile = fopen(statusFilePath,"w");
                 char tempStatus[] = "REMOTE_SQL_ERROR: ";
-                char *tempStatusPt = strcat(tempStatus,mysql_error(&con));
+                char *tempStatusPt = strcat(tempStatus,mysql_error(con));
                 fprintf(statusFile,tempStatusPt);
                 fflush(statusFile);
                 fclose(statusFile);
-                mysql_close(&con);
-                mysql_close(localCon);
-                mysql_init(&con);
-                localCon = mysql_init(NULL);
-                mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
-                mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0);
+                //mysql_close(con);
+//                mysql_close(localCon);
+//                con = mysql_init(con);
+//                localCon = mysql_init(NULL);
+                while(!mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 0))
+                {
+                    sleep(1);
+                }
+//                while(!mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0)){
+//                sleep(1);
+//                }
                 sleep(1);
             }
 
@@ -666,14 +767,18 @@ main(int argc, char** argv)
                     if(DEBUG)
                     {
                         //if we have a error with the database we most likely lost connection, so attempt to reestablish connection every 1 second. Do nothing if the query works
-                        fprintf(stderr, "%s\n", mysql_error(&con));
+                        fprintf(stderr, "%s\n", mysql_error(con));
+                        //mysql_dump_debug_info(con);
                     }
-                    mysql_close(&con);
-                    mysql_close(localCon);
-                    mysql_init(&con);
-                    localCon = mysql_init(NULL);
-                    mysql_real_connect(&con, file[0], file[1], file[2],file[3], 0, NULL, 0);
-                    mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0);
+//                    mysql_close(con);
+//                    mysql_close(localCon);
+//                    con = mysql_init(con);
+//                    localCon = mysql_init(NULL);
+                    while(!mysql_real_connect(con, file[0], file[1], file[2],file[3], 0, NULL, 0))
+                    {
+                        sleep(1);
+                    }
+//                    mysql_real_connect(localCon, "localhost", file[1], file[2],file[3], 0, NULL, 0);
                     sleep(1);
                 }
             }
