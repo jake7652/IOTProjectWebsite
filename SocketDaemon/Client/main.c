@@ -189,7 +189,7 @@ int main(int argc, char const *argv[])
        // return -1;
     }
     // Convert IPv4 and IPv6 addresses from text to binary form
-    while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
+    while(inet_pton(AF_INET, file[0], &serv_addr.sin_addr)<=0)
     {
        // printf("\nInvalid address/ Address not supported \n");
        // return -1;
@@ -281,7 +281,7 @@ int main(int argc, char const *argv[])
             serv_addr.sin_port = htons(PORT);
 
             // attempt to convert the ip address of the server and retry every second
-            while(inet_pton(AF_INET, "68.134.4.105", &serv_addr.sin_addr)<=0)
+            while(inet_pton(AF_INET, file[0], &serv_addr.sin_addr)<=0)
             {
                 //printf("\nInvalid address/ Address not supported \n");
                 sleep(1);
