@@ -4,7 +4,7 @@ Author: Jacob Barnett
 Version: Defined Below
 Description: Sends the daemons status and recieves commands from the webserver through TLS socket communication.
 */
-#define VERSION "1.0.5b"
+#define VERSION "1.0.7b"
 // Client side C/C++ program to demonstrate Socket programming
 #include <stdio.h>
 #include <sys/socket.h>
@@ -205,7 +205,7 @@ int main(int argc, char const *argv[])
     int connectNum = 0;
     int loopnum = 1;
     //lol why is this even allowed
-restart:
+//restart:
     //create the socket on the local machine
     while ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -245,12 +245,12 @@ restart:
     connectNum++;
     //infinite loop
 
-    struct timeval waitTimeout;
-    waitTimeout.tv_sec = 5;// wait for 5 seconds for recieve
+
     while(1)
     {
 
-
+        struct timeval waitTimeout;
+        waitTimeout.tv_sec = 5;// wait for 5 seconds for recieve
         FD_ZERO(&readfds);
         FD_SET(sock,&readfds);
         printf("--------------------------------- loop number %d ---------------------------------- \n",loopnum);
@@ -319,14 +319,17 @@ restart:
 //            //close the socket
             //SSL_clear(ssl);
 
-            SSL_shutdown(ssl);
+           // SSL_shutdown(ssl);
             SSL_free(ssl);
             //SSL_CTX_flush_sessions(ctx,5);
             //SSL_CTX_clear_options(ctx,100);
-            SSL_CTX_free(ctx);
             //SSL_CTX_free(ctx);
-            ERR_free_strings();
-            EVP_cleanup();
+            //SSL_CTX_free(ctx);
+
+
+
+            //ERR_free_strings();
+            //EVP_cleanup();
 
             //OPENSSL_thread_stop();
             //OPENSSL_cleanup();
@@ -337,38 +340,38 @@ restart:
             //memset(ctx,0,sizeof(SSL_CTX *));
             close(sock);
             sock = -1;
-            printf("\r                                                                                              ");
-            printf("\r");
-            printf("\033[A");
-
-            printf("\r                                                                                              ");
-            printf("\r");
-            printf("\033[A");
-
-            printf("\r                                                                                              ");
-            printf("\r");
-            printf("\033[A");
-
-            printf("\r                                                                                              ");
-            printf("\r");
-            printf("\033[A");
-            printf("\r                                                                                              ");
-            printf("\r");
-            printf("\033[A");
-            printf("\r                                                                                              ");
-            printf("\r");
-            printf("\n");
+//            printf("\r                                                                                              ");
+//            printf("\r");
+//            printf("\033[A");
+//
+//            printf("\r                                                                                              ");
+//            printf("\r");
+//            printf("\033[A");
+//
+//            printf("\r                                                                                              ");
+//            printf("\r");
+//            printf("\033[A");
+//
+//            printf("\r                                                                                              ");
+//            printf("\r");
+//            printf("\033[A");
+//            printf("\r                                                                                              ");
+//            printf("\r");
+//            printf("\033[A");
+//            printf("\r                                                                                              ");
+//            printf("\r");
+//            printf("\n");
             //for some reason this is allowed lol
             //also for some reason reconnecting the SSL legit did not work unless it was done this way
-            goto restart;
+      //      goto restart;
 //
 ////
 //            //recreate the socket and attempt to recreate every second
-//            while ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-//                printf("\n Socket creation error \n");
-//                //sleep(1);
-//            }
-//
+            while ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+                //printf("\n Socket creation error \n");
+                sleep(1);
+            }
+
 //            //0 out the server address in memory
 //            memset(&serv_addr, '0', sizeof(serv_addr));
 //            //set the socket family and port again since we probably need to change the port
@@ -378,28 +381,28 @@ restart:
 //             //attempt to convert the ip address of the server and retry every second
 //            while(inet_pton(AF_INET, file[0], &serv_addr.sin_addr)<=0)
 //            {
-//                printf("\nInvalid address/ Address not supported \n");
-//                //sleep(1);
+//                //printf("\nInvalid address/ Address not supported \n");
+//                sleep(1);
 //            }
-//
-//////            //attempt to reconnect the socket to the server every second
-//            while (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-//            {
-//                printf("\nConnection Failed retry in one second \n");
-//
-//                //sleep(1);
-//            }
-////            SSL_SESSION * sess =SSL_get1_session(ssl);
-//
-//            SSL_load_error_strings();
-//            SSL_library_init();
-//            OpenSSL_add_all_algorithms();
-//            sleep(1);
-//            ctx = SSL_CTX_new(SSLv23_client_method());
-//            ssl = SSL_new(ctx);
-//            SSL_set_fd(ssl, sock);
-////            SSL_set_session(ssl,sess);
-//            SSL_connect(ssl);
+
+////            //attempt to reconnect the socket to the server every second
+            while (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+            {
+                //printf("\nConnection Failed retry in one second \n");
+
+                sleep(1);
+            }
+//            SSL_SESSION * sess =SSL_get1_session(ssl);
+
+            SSL_load_error_strings();
+            SSL_library_init();
+            OpenSSL_add_all_algorithms();
+            sleep(1);
+            //ctx = SSL_CTX_new(SSLv23_client_method());
+            ssl = SSL_new(ctx);
+            SSL_set_fd(ssl, sock);
+//            SSL_set_session(ssl,sess);
+            SSL_connect(ssl);
 // //           SSL_do_handshake(ssl);
 //            //printf("Connected with %s encryption\n", SSL_get_cipher(ssl));
 
