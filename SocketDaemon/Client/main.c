@@ -4,7 +4,7 @@ Author: Jacob Barnett
 Version: Defined Below
 Description: Sends the daemons status and recieves commands from the webserver through TLS socket communication.
 */
-#define VERSION "1.0.4b"
+#define VERSION "1.0.5b"
 // Client side C/C++ program to demonstrate Socket programming
 #include <stdio.h>
 #include <sys/socket.h>
@@ -238,8 +238,9 @@ restart:
     ssl = SSL_new(ctx);
     SSL_set_fd(ssl, sock);
     SSL_connect(ssl);
-    if(connectNum == 0) {
-    printf("Connection Encryption: %s \n \n", SSL_get_cipher(ssl));
+    if(connectNum == 0)
+    {
+        printf("Connection Encryption: %s \n \n", SSL_get_cipher(ssl));
     }
     connectNum++;
     //infinite loop
@@ -296,7 +297,7 @@ restart:
         else
         {
             valread = -1;
-           // printf("%d\n",readStatus);
+            // printf("%d\n",readStatus);
         }
 
         //print out the command that was read in
@@ -336,6 +337,27 @@ restart:
             //memset(ctx,0,sizeof(SSL_CTX *));
             close(sock);
             sock = -1;
+            printf("\r                                                                                              ");
+            printf("\r");
+            printf("\033[A");
+
+            printf("\r                                                                                              ");
+            printf("\r");
+            printf("\033[A");
+
+            printf("\r                                                                                              ");
+            printf("\r");
+            printf("\033[A");
+
+            printf("\r                                                                                              ");
+            printf("\r");
+            printf("\033[A");
+            printf("\r                                                                                              ");
+            printf("\r");
+            printf("\033[A");
+            printf("\r                                                                                              ");
+            printf("\r");
+            printf("\n");
             //for some reason this is allowed lol
             //also for some reason reconnecting the SSL legit did not work unless it was done this way
             goto restart;
