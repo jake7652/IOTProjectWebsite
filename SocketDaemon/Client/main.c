@@ -4,7 +4,7 @@ Author: Jacob Barnett
 Version: Defined Below
 Description: Sends the daemons status and recieves commands from the webserver through TLS socket communication.
 */
-#define VERSION "1.0.3b"
+#define VERSION "1.0.4b"
 // Client side C/C++ program to demonstrate Socket programming
 #include <stdio.h>
 #include <sys/socket.h>
@@ -202,6 +202,8 @@ int main(int argc, char const *argv[])
     int maxfd;
     SSL_CTX *ctx;
     SSL *ssl;
+    int connectNum = 0;
+    int loopnum = 1;
     //lol why is this even allowed
 restart:
     //create the socket on the local machine
@@ -236,12 +238,14 @@ restart:
     ssl = SSL_new(ctx);
     SSL_set_fd(ssl, sock);
     SSL_connect(ssl);
+    if(connectNum == 0) {
     printf("Connection Encryption: %s \n \n", SSL_get_cipher(ssl));
+    }
+    connectNum++;
     //infinite loop
-    int loopnum = 1;
+
     struct timeval waitTimeout;
     waitTimeout.tv_sec = 5;// wait for 5 seconds for recieve
-    int readStatus = 0;
     while(1)
     {
 
@@ -284,7 +288,7 @@ restart:
         printf(lineTempPt);
         printf("\n");
 
-        readStatus = select(maxfd + 1, &readfds, NULL, NULL, &waitTimeout);
+        select(maxfd + 1, &readfds, NULL, NULL, &waitTimeout);
         if (FD_ISSET(sock, &readfds))
         {
             valread = SSL_read( ssl, buffer, BUF_LEN);
