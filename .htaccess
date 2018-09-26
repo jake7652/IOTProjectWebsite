@@ -1,1 +1,5 @@
+RedirectMatch 403 \.txt$
 DirectoryIndex /Content/index.html
+php_value upload_max_filesize    2047M
+php_value post_max_size          2047M
+php_value max_execution_time     10800
