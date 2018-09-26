@@ -18,6 +18,7 @@ END DEVELOPMENT HEADER
 <script src="/lib/DataTables/datatables.min.js"></script>
 <link rel="stylesheet" href="/lib/DataTables/datatables.min.css">
 <script src="/lib/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
+<script src="/lib/database.js"></script>
 <head>
 <!-- We just need styling for the pages button -->
 <style>
@@ -86,9 +87,10 @@ $.ajax({ url: "../Account/usrStat.php",
 });
 
 
-var pagesTitles = ['Register Account/Login','Account Profile','Logout','Remote System Management','Table view', 'Line chart view', 'Combined line chart view','Export data to spreadsheet'  ];
-var pages = ['../Account/index.php','../Account/profile.php','/Account/logout.php/','../Content/management.html','../Content/table.html','../Content/lineCharts.html','../Content/lineChartsCombined.html','../Content/export.html'];
-var permissionNeeded = [0,1,1,3,0,0,0,0];
+
+var pagesTitles = ['Register Account/Login','Account Profile','Logout','Remote System Management','Table view', 'Line chart view', 'Combined line chart view','Export data to file','Import data into graph'  ];
+var pages = ['../Account/index.php','../Account/profile.php','/Account/logout.php/','../Content/management.html','../Content/table.html','../Content/lineCharts.html','../Content/lineChartsCombined.html','../Content/export.html','/Content/import.html'];
+var permissionNeeded = [0,1,1,3,0,0,0,0,0];
 var table;
 
 
@@ -105,7 +107,7 @@ var table;
 	"ordering": false,
 	searching: false,
 	"oLanguage": {
-		"sInfo": "Click on a button to go to a webpage. Last update: 2018-08-14 9:38"
+		"sInfo": "Click on a button to go to a webpage. Last update: 2018-09-19 16:13"
 	}
         //"columnDefs": [ {
             //"targets": -1,
@@ -136,10 +138,11 @@ $.LoadingOverlay("hide");
 //what happens when one of the graph buttons are clicked
 $('#pagesTable tbody').on( 'click', 'button', function () {
         //$.LoadingOverlay("show");
-        
+	//check against the user permissions to check if we need to log the user out for inactivity         
 	//redirect to the page that was selected by this button
 	//alert(this.value);
-	window.location.replace(this.value);
+	window.location.href = this.value;
+	//window.location.replace(this.value);
         
     } );
 

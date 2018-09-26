@@ -2,23 +2,21 @@
 <!--  
 DEVELOPMENT HEADER
 Author: Jacob Barnett
-Version: 1.0.0b
-Description: Page where a user can display sensor data in line chart form
-for various sensors for one sensor platform at a time.
+Version: 1.0.1b
+Description: Page where a user can request a export of any number of sensors for any valid timerange for a sensor platform to be exported and downloaded as a microsoft spreadsheet.
 END DEVELOPMENT HEADER
 -->
-<!-- offline source of plotly API used for graphing the plot -->
-<script src="/lib/plotly-latest.min.js"></script>
 <!-- offline source for jquery used for calling php script from javascript -->
 <script src="/lib/jquery-3.3.1.js"></script>
 <!-- offline source for the loading overlay of the website -->
 <script src="/lib/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
 <!-- jquery ui for the sliders -->
 <script src="/lib/jquery-ui/jquery-ui.min.js"></script>
-
+<!-- contains a bunch of mostly constants for the remote db -->
 <script src="/lib/database.js"></script>
-
+<!-- jquery ui styling -->
 <link rel="stylesheet" href="/lib/jquery-ui/jquery-ui.min.css">
+<!-- jquery redirect so i can pass post arguments in a redirect for downloading -->
 <script src="/lib/jquery.redirect.js"></script>
 </head>
 <body>
@@ -27,12 +25,6 @@ END DEVELOPMENT HEADER
 
 <style>
 
-/* styling for the toolbar at the top of the chart. This moves it to the left */
-.js-plotly-plot .plotly .modebar {
-
-left:0%;
-
-}
 
 /* styling for the toolbar at the top of the chart. This moves it to the left */
 .ui-slider-horizontal {
@@ -80,6 +72,16 @@ float: left;
 /* formatting for the date range slider for the graph */
 .divLeft {
 width:83%;
+display:block;
+float:left;
+
+}
+
+
+
+/* formatting for left and right export buttons */
+.exportSpan {
+width:49%;
 display:block;
 float:left;
 
@@ -187,12 +189,34 @@ TO
 
 </fieldset>
 
+
+<br>
+
+<fieldset>
+<legend>Limit rows in output(with extra rows as round off). Reduces granularity</legend> 
+
+<!-- End input box -->
+<input type='number' id='row_limit' placeholder="Row limit">
+
+<!-- start and end submit button to call the goTo() function to handle the input -->
+<input type='button' id='link_str' value='Lock in limit' onClick='limitRows()'>
+
+</fieldset>
+
+
 <br>
 
 
 <fieldset>
-<legend>Export to xls(UTF 8)</legend>
-<input type='button' id='export_button' class= "indexbutton" value='Export' onClick='exportFields()'>
+<legend>Export to a filetype</legend>
+<span class="exportSpan">
+<input type='button' id='xlsx_button' class= "indexbutton" value='Export to XLSX(SLOW)' onClick='exportFields("xlsx")'>
+</span>
+<span class = "separator"><br><br></span>
+<span class ="exportSpan" >
+<input type='button' id='csv_button' class= "indexbutton" value='Export to CSV(FAST)' onClick='exportFields("csv")'>
+</span>
+
 </select>
 </fieldset>
 
@@ -212,10 +236,15 @@ TO
 </select>
 </fieldset>
 
+<form style="display: hidden" action="export.php" method="POST" id="form">
+  <input type="hidden" id="arguments" name="arguments" value=""/>
+</form>
+
+
 <!-- footer to show when the website was last updated -->
 <footer> 
 <br>
-Website last updated 2018-07-17 4:40
+Website last updated 2018-07-29 13:12
 </footer>
 
 
@@ -238,7 +267,10 @@ var UNITS  = database.UNITS;
 var sensor = ["PressureTemperature"];
 if(sessionStorage.getItem('sensor') != null) {
 	sensor = sessionStorage.getItem('sensor').split(",");
-} 
+} else {
+sessionStorage.setItem('sensor', 'PressureTemperature');
+
+}
 
 
 if(sessionStorage.getItem('Table') == null) {
@@ -312,6 +344,8 @@ var currentFields; //used to keep track of what is currently graphed so that I c
 <script>
 //Selected timerange for the export
 var selectedRange = false;
+
+var rowLimit = 0;
 
 //handles what happens when the user presses the checkboxes for graphing sensors
 function sensorSelectHandler(checkboxName) {
@@ -534,17 +568,18 @@ function changeTable(table) {
 	$.LoadingOverlay("show");
 	//set the table to the updated selection
 	sessionStorage.setItem('Table', table);
-	sessionStorage.setItem('sensor',currentFields);
+	sensorSelectHandler('sensor');
+	//sessionStorage.setItem('sensor',currentFields);
 	//scroll to top of the page when we select a new table
 	//window.scrollTo(0,0);
 	//refresh the page after the table changes because i'm too lazy to bother functioniz-ing everything
-	location.reload();
+	location.reload(true);
 }
 
 //fields to not include in the checkbox options
 var ignoredFields = database.IGNORED_FIELDS;
 function populateSensorCheckboxes(flds) {
-	//alert("AAAAAAAAA");
+	//alert(sessionStorage.getItem("sensor"));
 	for(var i = 0; i < flds.length; i++){
 		if(!ignoredFields.includes(flds[i])) {
 			var spTemp = document.createElement("span");
@@ -566,9 +601,20 @@ function populateSensorCheckboxes(flds) {
 			document.getElementById("sensors").appendChild(spTemp);
 		}
 	}
+	$.LoadingOverlay("hide"); //hide the loading overlay as we are done loading this 
 
 }
 fieldNamesQuery(populateSensorCheckboxes);
+
+function limitRows() {
+	var limit = document.getElementById("row_limit").value;
+	var limit = (limit == 0) ? 0 : limit;
+	//alert(limit);
+	rowLimit = limit;
+	return limit;
+
+
+}
 
 
 function goBack(){
@@ -577,16 +623,19 @@ function goBack(){
 }
 
 
-function exportFields() {
-//download("thing.xls","AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-sensorSelectHandler('sensor');
+function exportFields(fExtension) {
+	//get the selected checkboxes
+	sensorSelectHandler('sensor');
+	limitRows();
+	//redirect to the script that will handle the building of the spreadsheet and the submission of it. Do note that this does not actually redirect to the page, 
+	//but will submit the download file to the user
 
-//var redirect = '/Content/export.php';
-//alert(selectedRange);
-$.redirect('/Content/export.php', {'arguments':[sessionStorage.getItem('sensor'),selectedRange[0],selectedRange[1],sessionStorage.getItem('Table')]}); 
-
-//$.redirectPost(redirect, {data: arguments: });
-
+//	$("#arguments").val([sessionStorage.getItem('sensor'),selectedRange[0],selectedRange////[1],sessionStorage.getItem('Table')]);
+	//$("#form").submit();
+	$.redirect('/Content/export.php', {'arguments':[sessionStorage.getItem('sensor'),selectedRange[0],selectedRange[1],rowLimit,sessionStorage.getItem('Table'),fExtension]}); 
+	//Async alert so that it does not stop the redirect to the php script for the file download
+	setTimeout("alert('Please wait as we prepare your file. Large exports(especially xlsx files) will take some time to assemble.');", 1);	
+	
 }
 </script>
 

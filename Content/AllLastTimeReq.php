@@ -45,9 +45,10 @@ $query = $query . "(SELECT RTCDataTime FROM " . $tables[$i] . " ORDER BY RTCData
 
 $query = $query . "(SELECT RTCDataTime FROM " . $tables[$i] . " ORDER BY RTCDataTime DESC LIMIT 1) AS " . $tables[$i] . ";";
 
-$result = $mysqli->query($query);
 
-echo json_encode(mysqli_fetch_assoc($result));
+$result = $mysqli->query($query);
+echo json_encode($query);
+//echo json_encode(mysqli_fetch_assoc($result));
 
 
 

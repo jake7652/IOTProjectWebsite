@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Import data into a graph</title>
+
+<!-- offline source of plotly API used for graphing the plot -->
+<script src="/lib/plotly-latest.min.js"></script>
+<!-- Jquery that is needed for the loading overlay -->
+<script src="/lib/jquery-3.3.1.js"></script>
+<!-- contains a bunch of mostly constants for the remote db -->
+<script src="/lib/database.js"></script>
+<!-- offline source for the loading overlay of the website -->
+<script src="/lib/jquery-loading-overlay-2.1.5/dist/loadingoverlay.min.js"></script>
+</head>
+
+<body>
+<div id="myDiv" style="width: 960px; height: 800px;"><!-- Plotly chart will be drawn inside this DIV --></div>
+
+
+
+<!-- label for the table -->
+<p id="instructions" style="text-align: center; font-size: 24px;">Upload previously exported sensor data to be graphed</p>
+
+<p id ="instructions2" style="font-size: 24px;">
+
+
+File Format:
+<br>
+The uploaded file must be a CSV file(xlsx is too heavy a format and would be too demanding to graph) and the file must have the field names on the first row in the exact names they appear in a native export from this site or else certain graph labels and units will not work. 
+<br><br>
+Limitations/Warnings:
+
+<br>
+There are no limits to the size of the file that you upload, but do be warned that large datasets(csv files over 50MB) will be extremely ram heavy on your browser(for a 51.7MB csv file ram usage peaked at about 1.6GB of ram) and some files that are even larger might not even load at all before you run out of memory. Once the page loads it will also be very heavy on the CPU for large datasets. You have been warned.
+</p>
+
+<div>
+Upload some data:
+<input type="file" onchange='readText(this)' />
+</div>
+    <script>
+	var plotDiv = document.getElementById('myDiv');
+	plotDiv.style.display = "none";
+	var instructions = document.getElementById('instructions');
+	var instructions2 = document.getElementById('instructions2');
+	stopActivityMonitor();
+
+	var windowWidth = window.innerWidth; //used for setting the graph's size
+	var windowHeight = window.innerHeight; //used for setting the graph's size
+
+	var MIN_MAX = database.MIN_MAX;
+	var LABELS  = database.LABELS;
+
+	var UNITS  = database.UNITS;
+	var reader = new FileReader();
+	
+	var fields = new Array();
+	var dates = new Array();	
+	var temps = new Array();
+	function readText(that){
+		if(that.files && that.files[0]){
+			var reader = new FileReader();
+			reader.onload = function (e) {  
+				var rows = e.target.result.split('\n');
+				//alert(rows.length);
+				fields = rows[0].split(',')
+				for(var i = 0; i < fields.length-1; i++) {
+					temps[i] = new Array();
+				}	
+				for(var i = 1; i < rows.length; i++) {
+					var rowVals = rows[i].split(",");
+
+					for(var i2 = 0; i2 < fields.length; i2++) {
+						if(i2 == 0) { 
+							row = rowVals[i2];
+							var tempDate = "";
+							tempDate = tempDate.concat (row.substring(0,4), "-" , row.substring(4,6) ,"-" , row.substring(6,8) ," " ,row.substring(8,10) ,":" ,row.substring(10,12) ,":" ,row.substring(12,14));
+							dates[i-1] = tempDate;
+						} else {
+							temps[i2-1][i-1] = rowVals[i2];
+						}
+						
+					}
+
+				}
+				//alert(temps.length);
+				fields.shift();
+				plotDiv.style.display = "block";
+				instructions.style.display = "none";
+				instructions2.style.display = "none";
+				makePlot();
+			};//end onload()
+			if(that.files[0].type == "text/csv") {
+				stopActivityMonitor();
+				$.LoadingOverlay("show");
+				//blank these variables between file submissions
+				fields = new Array();
+				dates = new Array();	
+				temps = new Array();
+				reader.readAsText(that.files[0]);
+			} else {
+				alert("File you selected is not CSV. You must use a CSV file");
+				$.LoadingOverlay("hide");
+			}
+			
+		}//end if html5 filelist support
+	}
+function makePlot() {
+		
+		//start of labels for the x and y axis anchors
+		var x_axis = 'x';
+		var y_axis = 'y';
+		//traces used in the plot. Each index is a object representing one field's y and x data
+		var traces = new Array();
+		//layout for the plot for the format of each subplot
+		var layout = {};
+		//number of rows and cols of subplots 
+		var num_rows;
+		var num_cols;
+		//if we wanted to draw 3 graphs then we would have 2 rows and 2 cols for graphs with the last col empty
+		//determine the number of rows and cols of subgraphs
+		num_rows = Math.floor(Math.sqrt(fields.length));
+		num_cols = Math.ceil(Math.sqrt(fields.length));
+		if((num_rows*num_cols) < fields.length) {
+			num_rows++;
+		}
+
+		//gaps between each subgraph(in percent of the size of the encapsulating div) to give space for axis labels and other graph elements
+		var row_gap = .2;
+		var col_gap = .11;
+
+		//running variables to keep track of the current row and col of the subgraph that is being formatted
+		var row = 0.0;
+		var col = 0.0;
+		//start i at 0 and go through each field, making a graph for each one 
+		for(var i = 0; i < fields.length; i++) {
+			//determine current row and col in relation to I
+			row = Math.floor(i/num_cols);
+			col = Math.floor(i%num_cols);
+			//variable to store in the traces array, done for each subgraph
+			var tempTrace;
+			//for the first subgraph we don't need a xaxis and yaxis label, but for every other subgraph we need one to anchor it
+			if(i == 0) {
+				//trace for the first subgraph
+				tempTrace = {
+  					x: dates,
+  					y: temps[i],
+  					type: 'scattergl',
+  					name: fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
+  					connectgaps: true,
+
+				};
+			} else {
+				//trace for every subgraph but the first
+				tempTrace = {
+  					x: dates,
+  					y: temps[i],
+  					xaxis: x_axis.concat((i+1).toString()),
+  					yaxis: y_axis.concat((i+1).toString()),
+  					type: 'scattergl',
+  					name: fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
+  					connectgaps: true,
+				};
+			}
+			traces[i] = tempTrace;
+			//layout is slightly different for the first subgraph and the others since we can just call the first 'xaxis' and 'yaxis',
+			//but the others have i+1 concat onto the end of that
+			if(i == 0) {
+				//make the new objects for the x and y axis for the first subgraph
+				layout['xaxis'] = {};
+				layout['yaxis'] = {};
+				//the buttons at the top of the first subgraph for selecting predefined ranges of data
+				layout['xaxis']['rangeselector'] = {buttons: [
+    					{ 
+						count: 1,  
+    						label: '24hrs', //last 24 hours button
+    						step: 'day',
+    						stepmode: 'backward'
+    					},
+    					{ 
+						count: 7, 
+    						label: '1 week', //last week button
+    						step: 'day',
+    						stepmode: 'backward'
+    					},
+    					{
+   						 count: 1,
+   						 label: '1 month', //last month button
+    						 step: 'month',
+    						 stepmode: 'backward'
+    					},
+    					{
+						step: 'all'
+					} //all data button
+    				]};
+			    //layout['xaxis']['rangeslider'] = {range: domain, height: 5};
+			    //layout['xaxis']['type'] = 'date';
+			    layout['xaxis']['domain'] = [0,(1.0/num_cols-col_gap)]; //set the width constraint of the first graph
+			    layout['yaxis']['domain'] = [0,(1.0/num_rows-row_gap)]; //set the height constraint of the first graph
+			    //layout['xaxis']['range'] = domain; //set the domain or min and max values of the xaxis for the first graph
+			    layout['yaxis']['range'] = MIN_MAX[fields[i]]; //set min and max values for the yaxis of the first graph
+			    //layout['xaxis']['autorange'] = false; // by default do not autoscale the graph
+			    //layout['yaxis']['autorange'] = false; // by default do not autoscale the graph
+			    layout['yaxis']['title'] = LABELS[fields[i]] + "(" + UNITS[fields[i]] +")"; //set the label on the yaxis for the first graph
+			    layout['xaxis']['title'] = "Date"; //set the label for the xaxis of the first graph
+
+		   } else {
+			let yAx ='yaxis'.concat((i+1).toString()); //yaxis object 
+			let xAx = 'xaxis'.concat((i+1).toString()); //xaxis object
+			layout[yAx] = {}; //make the yaxis object for every other graph than the first
+			layout[xAx] = {}; //make the xaxis object for graphs other than the first
+			//preset range buttons at top of graph
+			layout[xAx]['rangeselector'] = {buttons: [
+    			{ 
+				count: 1,
+    				label: '24hrs', //last day button
+    				step: 'day',
+    				stepmode: 'backward'
+    			},
+    			{ 
+				count: 7,
+    				label: '1 week', //last week button
+    				step: 'day',
+    				stepmode: 'backward'
+    			},
+    			{
+    				count: 1,
+    				label: '1 month', //last month button
+    				step: 'month',
+    				stepmode: 'backward'
+    			},
+    			{
+				step: 'all'
+			} //all data button
+    		    ]};
+		    //layout[xAx]['rangeslider'] = {range: domain, height: 5};
+		    //layout[xAx]['type'] = 'date';
+		    if(row == fields.length-1) { 
+			layout[yAx]['domain'] = [((num_rows-1.0)/num_rows),1]; //for the last row the y constraint does not need the row gap
+		    } else {
+			layout[yAx]['domain'] = [(row/num_rows),(((row+1)/num_rows)-row_gap)]; //for every other row the y constraint needs the row gap
+		    }
+
+		    if(col == fields.length-1) {
+			layout[xAx]['domain'] = [(((num_cols-1.0)/num_cols)+col_gap),1]; //for the last column the x constraint does not need the col gap
+		    } else {
+			layout[xAx]['domain'] = [(col/num_cols),(((col+1)/num_cols)-col_gap)]; //for every other col the x constraint does need the col gap
+		    }
+
+		    //layout[xAx]['range'] = domain; //set the min and max x values for all subplots but the first
+		    layout[xAx]['anchor'] = y_axis.concat((i+1).toString()); //set the x anchor of the subplot
+		    layout[yAx]['anchor'] = x_axis.concat((i+1).toString()); //set the y anchor of the subplot
+		    layout[yAx]['range'] = MIN_MAX[fields[i]]; //set the min and max values of the y axis of the subplot
+		    //layout[xAx]['autorange'] = false; //by default the subplot does not autoscale
+		    //layout[yAx]['autorange'] = false; //by default the subplot does not autoscale
+		    layout[yAx]['title'] = LABELS[fields[i]] + "(" + UNITS[fields[i]] +")"; //set the label of the y axis 
+		    layout[xAx]['title'] = "Date"; //set the label of the x axis
+
+
+	           }
+
+	        } //end massive graph populator loop
+		//if we are only graphing one field then we can set a title for the whole graph, but otherwise do not do so
+		if(fields.length == 1) {
+			layout['title'] = fields[0].split(/(?=[A-Z][a-z])/).join(" ");
+		}
+
+		//set the size of the graph area. This helps for when the graph is downloaded as a png so the image is the proper resolution.
+		layout['autosize'] = false; 
+		layout['width'] = windowWidth*.9; //I found that expanding it out to 100% would make the webpage slightly too wide with the encompassing fieldset
+		layout['height'] = (windowHeight*.8); //the 5% difference here from the div's height is intentional to prevent the graph from cutting off text under it 
+		//Draw a new plot every time there is a call made to the function. 
+		//React is more efficient but I was experiencing some unusual behavior with the subplots when using it so I had to use newPlot instead
+		//the 4th argument hides the logo in the modebar, tells it to always be displayed, and removes autoscale since it does not work
+		Plotly.newPlot('myDiv',traces,layout,{displaylogo: false, displayModeBar: true,modeBarButtonsToRemove: ['autoScale2d']}); 
+		
+		window.onresize = function(event) {
+
+			Plotly.relayout('myDiv', {
+				width: window.innerWidth*.9,
+				height: window.innerHeight*.8,
+			
+		
+			});
+		
+
+		};
+$.LoadingOverlay("hide");
+startActivityMonitor();
+}
+ 
+</script>
+</head>
+
+	<div id="main"></div>
+</html>

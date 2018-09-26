@@ -292,6 +292,11 @@ var currentFields; //used to keep track of what is currently graphed so that I c
 //draw the plots at plotName dive for the given array of fields and given time domain
 function drawPlots(fields,plotName,domain,realtime) {
 
+
+	//change height and width every time we replot the graphs
+	windowWidth = window.innerWidth; //used for setting the graph's size
+	windowHeight = window.innerHeight; //used for setting the graph's size
+
 	$.LoadingOverlay("show");
 	currentFields = fields;
 	var query;
@@ -357,7 +362,7 @@ function drawPlots(fields,plotName,domain,realtime) {
 				tempTrace = {
   					x: dates,
   					y: temps[i],
-  					type: 'scatter',
+  					type: 'scattergl',
   					name: fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
   					connectgaps: true,
 
@@ -369,7 +374,7 @@ function drawPlots(fields,plotName,domain,realtime) {
   					y: temps[i],
   					xaxis: x_axis.concat((i+1).toString()),
   					yaxis: y_axis.concat((i+1).toString()),
-  					type: 'scatter',
+  					type: 'scattergl',
   					name: fields[i].split(/(?=[A-Z][a-z])/).join(" "), //name of the trace or line is the field name split along every capital letter followed by a lowercase
   					connectgaps: true,
 				};

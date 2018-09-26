@@ -20,6 +20,27 @@ END DEVELOPMENT HEADER
 <script>
 
 
+var statQueryRunning = false;
+function usrStatQuery() {
+statQueryRunning = true;
+$.ajax({ url: "/Account/usrStat.php",
+         async: true,
+	 type: "GET",
+         dataType: 'json',
+	 data: {arguments: []}, //no arguments needed for this
+         success: function(output) {
+		userLoggedIn = output[0];
+		statQueryRunning = false;
+		userPermissions = parseInt(output[1]);
+}
+		
+});
+
+
+
+
+}
+
 var userLoggedIn = false;
 var userPermissions = -1;
 $.ajax({ url: "/Account/usrStat.php",
@@ -416,10 +437,10 @@ function runningLastTimesCallback(output) {
  //for all tables update the last update time and the daemon status for each row in the table
  for(var i = 0; i < tables.length; i++) {
          var tempData = table.row(i).data();
-	 tempData[1] = daemonStatus[0][2];
-	 tempData[2] = daemonStatus[0][1];
-	 tempData[3] = daemonStatus[0][3];
-	 tempData[4] = daemonStatus[0][4];
+	 tempData[1] = daemonStatus[i][2];
+	 tempData[2] = daemonStatus[i][1];
+	 tempData[3] = daemonStatus[i][3];
+	 tempData[4] = daemonStatus[i][4];
          table.row(i).data(tempData); 
 	 }
 doneUpdating = true;

@@ -8,17 +8,10 @@ END DEVELOPMENT HEADER
 */
 $logMessage = "PROFILE";
 include "logging.php";
-
+ob_start();
+include "usrStat.php";
+ob_get_clean();
 /* Displays user information and some useful messages */
-session_start();
-
-if (isset($_SESSION['LAST_ACTIVITY']) && (time() - $_SESSION['LAST_ACTIVITY'] > 1800)) {
-    // last request was more than 30 minutes ago
-    session_unset();     // unset $_SESSION variable for the run-time 
-    session_destroy();   // destroy session data in storage
-}
-$_SESSION['LAST_ACTIVITY'] = time(); // update last activity time stamp
-
 // Check if user is logged in using the session variable
 if ( $_SESSION['logged_in'] != 1 ) {
   $_SESSION['message'] = "You must log in before viewing your profile page!";
@@ -34,7 +27,11 @@ else {
 }
 ?>
 <!DOCTYPE html>
-<html >
+
+<html>
+<!-- offline source for jquery used for calling php script from javascript -->
+<script src="/lib/jquery-3.3.1.js"></script>
+<script src="/lib/database.js"></script>
 <head>
   <meta charset="UTF-8">
   <title>Welcome <?= $first_name.' '.$last_name ?></title>
@@ -82,7 +79,7 @@ else {
 	  <a href="/Content/index.html"><button class="button button-block" name="indexButton"/>Back to index</button></a>
 	  <br>
 	  <footer>
-	  Website last updated 2018-08-14 9:43
+	  Website last updated 2018-09-19 16:07
 	  </footer>    
 </div>
     

@@ -54,29 +54,29 @@ $num_lines = mysqli_fetch_array($lines_query)[0];
 $lines_query->close();
 $line_limit = 3600;
 $interval = ceil($num_lines/$line_limit);
-if($num_lines > $line_limit) {
 
-$query[0] = "SELECT * FROM ( SELECT @row := @row +1 AS rownum, RTCDataTime";
+//$query[0] = "SELECT * FROM ( SELECT @row := @row +1 AS rownum, RTCDataTime";
+$query[0] = "SELECT RTCDataTime";
 for($i = 0; $i < $num_fields;$i++) {
 $query[0] = $query[0] . "," . $fields[$i];
 
 }
-$query[0] = $query[0] . " FROM ( SELECT @row :=0) r, " . $table . " WHERE RTCDataTime >= " . $min_time . " AND RTCDataTime <= " . $max_time . " ) ranked WHERE rownum % " . $interval . " = 1";
+//$query[0] = $query[0] . " FROM ( SELECT @row :=0) r, " . $table . " WHERE RTCDataTime >= " . $min_time . " AND RTCDataTime <= " . $max_time . " ) ranked WHERE rownum % " . $interval . " = 1";
+$query[0] = $query[0] . " FROM " . $table . " WHERE RTCDataTime >= " . $min_time . " AND RTCDataTime <= " . $max_time ;
+
+if($num_lines > $line_limit){
+
+$query[0] = $query[0] . " AND TransmissionKey % " . $interval . " = 1";
+
+}
+
 //echo json_encode($query[0]);
 $result[0] = $mysqli->query($query[0]);
 //echo json_encode(mysqli_fetch_all($result[0]));
 //echo json_encode(mysqli_fetch_array($result[0]));
 //die();
-$startIndex = 1;
-} else {
-$query[0] = "SELECT RTCDataTime";
-for($i = 0; $i < $num_fields;$i++) {
-//$query[$i] = sprintf("SELECT " . $fields[$i] . " FROM " . $table . "");
-$query[0] = $query[0] . "," . $fields[$i];
-}
-$query[0] = $query[0] . " FROM " . $table . ";";
-$result[0] = $mysqli->query($query[0]);
-}
+$startIndex = 0;
+//echo json_encode($query[0]);
 
 } else {
 
@@ -137,5 +137,6 @@ $result[0]->close();
 $mysqli->close();
 
 //now print the data
+//echo json_encode($query[0]);
 echo json_encode($ret);
 ?>

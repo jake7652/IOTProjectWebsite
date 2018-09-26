@@ -9,7 +9,7 @@ END DEVELOPMENT HEADER
 /* Main page with two forms: sign up and log in */
 require 'db.php';
 session_start();
-if (isset($_SESSION['email'])){
+if ($_SESSION['email']!=null){
 	header("location: /Content/index.html");
 }
 

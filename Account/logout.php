@@ -7,7 +7,11 @@ DEVELOPMENT HEADER
 END DEVELOPMENT HEADER 
 */
 /* Log out process, unsets and destroys session variables */
+require 'db.php';
 session_start();
+//only update that the user is logged put if related session in the database is the same as this machine's given session
+$setLogin = "UPDATE Users SET loggedin=0 WHERE email='" . $_SESSION['email'] . "' AND sessionid='". $_SESSION['ID'] . "';";
+$mysqli->query($setLogin);
 $logMessage = "LOGOUT";
 include "logging.php";
 while(!$doneLogging) {
@@ -26,7 +30,7 @@ session_destroy();
 </head>
 <script>
 
-window.location.href = "https://tideguage.tk/Account/index.php";
+window.location.href = "/Account/index.php";
 </script>
 <body>
 <div class="form">
