@@ -10,10 +10,12 @@ char ** splitString(char * str)
 
     int i;
     int count = 0;
+    //the delimeters to split a string by, for this we are just using ",", but this could handle more
     const char delims[] = ",";
     char *result = NULL;
     char **store = NULL;
     char **tmp = NULL;
+    //a temp store of each token from the input string split along the delims
     result = strtok(str, delims);
     while (result != NULL)
     {
@@ -22,49 +24,29 @@ char ** splitString(char * str)
         for (i=0; i<count; i++)
         {
             tmp[i] = store[i];
-            // printf("%s\n", tmp[i]);
         }
         free(store);
+        //the store has to always be one longer than count so we can add our stop character at the end to denote when to stop looping through a split string
         store = malloc((count + 2) * sizeof(char *));
         for (i=0; i<count; i++)
         {
 
             store[i] = tmp[i];
         }
-        //memcpy( result[i], &result[1], sizeof(result)-1);
-        //result[sizeof(result)-1] = '\0';
+
         store[count] = result;
         count++;
-        // printf("%s\n", result);
+
 
         result = strtok(NULL, delims);
 
     }
     free(tmp);
-//          tmp = malloc(count * sizeof(char *));
-//
-//          for (i=0; i<count; i++) {
-//
-//               tmp[i] = store[i];
-//
-//             //  memcpy( tmp[i], &tmp[i][1], sizeof(tmp[i]));
-//              // tmp[i][strlen(tmp[i])-1] = '\0';
-//          }
-//          free(store);
-//          store = malloc((count + 1) * sizeof(char *));
-//          for (i=0; i<count; i++) {
-//
-//               store[i] = tmp[i];
-//               //printf("%s\n",store[i]);
-//          }
-    //memcpy( result[i], &result[1], sizeof(result)-1);
-    //result[sizeof(result)-1] = '\0';
 
-    //put a -1 at the end of store so that we know when to stop looping over it
-    store[count] = "-1";
+    //put a 0 at the end of store so that we know when to stop looping over it
+    store[count] = 0;
     count++;
-    //free(tmp);
-    // free(store);
+
     return store;
 
 }
@@ -77,6 +59,8 @@ char * fTrim (char s[])
         s[i] = '\0';
     return s;
 }
+
+//the path and name of the source CSV file without extension
 char * filename;
 int main(int argc, char *argv[])
 {
@@ -88,12 +72,13 @@ int main(int argc, char *argv[])
 
         filename = argv[1];
     }
+    //this else is pretty much just here to set the filename to whatever you want for debugging purposes
     else
     {
 
-        filename = "/var/www/exports/export5b9abd931a614Test";
+        filename = "/var/www/exports/export";
     }
-    //printf("ree");
+    //while not the true start of the application, this is fine for a beginning measurement
     clock_t begin = clock();
 
     FILE * fileptr;
@@ -119,6 +104,7 @@ int main(int argc, char *argv[])
     //create the workbook with the xlsxFile path and options that were stated before
     lxw_workbook  *workbook  = workbook_new_opt(xlsxFile,&options);
     //properties that show up in the xlsx file
+    //used to help in searching for the file and to denote the units that each potential field uses
     lxw_doc_properties properties = {
     .title    = "export",
     .subject  = "Export tideguage data to spreadsheet",
@@ -134,14 +120,18 @@ int main(int argc, char *argv[])
     workbook_set_properties(workbook, &properties);
     //current worksheet variable
     lxw_worksheet *worksheet;
+
     //just get the first line of the csv file for headers
     fgets(line, sizeof(line), fileptr);
+
     //split the first line so that we get each field individually
     char ** splitLine = splitString(fTrim(line));
+
     //buffer to store the current sheet name in
     char sheetNameBuf[20];
     //store the name of the current sheet in the sheet name buffer
     sprintf(sheetNameBuf, "Sheet%d", sheetNum);
+   // exit(0);
     //format to use when we are messing with the column widths
     lxw_format *format = workbook_add_format(workbook);
     //add the first worksheet
@@ -152,19 +142,19 @@ int main(int argc, char *argv[])
     sheetNum++;
 
     //write the header so the user knows what the column's field is
-    for(int i = 0; strcmp(splitLine[i],"-1") != 0 ; i++)
+    for(int i = 0; splitLine[i] != 0; i++)
     {
         worksheet_write_string(worksheet,0,i,splitLine[i],NULL);
     }
-
     free(splitLine);
+
     //row num will have to start at 1 for the first sheet since the header is the 0 row
     rowNum = 1;
 
-    //The row limit per spreadsheet that is set by the xlsx file format
+    //A row limit per spreadsheet that is imposed by the xlsx file format
     int rowLimit = 1048575;
 
-    //go through each line of the settings file
+    //go through each line of the data file
     while (fgets(line, sizeof(line), fileptr))
     {
         //get the current line of the csv and split it along the commas
@@ -172,18 +162,22 @@ int main(int argc, char *argv[])
         //if our sheet is too large, just create a new sheet and start writing to that
         if(rowNum-rowLimit>0)
         {
-            //printf("b\n");
+            //basically copy the sheet name into the sheet name buffer
             sprintf(sheetNameBuf, "Sheet%d", sheetNum);
-
+            //append the new sheet onto the workbook
             worksheet = workbook_add_worksheet(workbook, sheetNameBuf);
+            //set the first 30 columns of the sheet to be 20 px wide
             worksheet_set_column(worksheet,0,30,20,format);
+            //increase the sheet num
             sheetNum++;
+            //reset the row num on the currrent sheet
             rowNum=0;
         }
 
-
-        //C does not have a very good way to get length of a string array, so i just put "-1" as the last index in splitString() of it to tell loops when to stop
-        for(int i = 0; strcmp(splitLine[i],"-1") != 0 ; i++)
+        //Loop through each field and print it out to the current row
+        //C does not have a very good way to get length of a string array, so i just put 0 as the last index in splitString() of it to tell loops when to stop
+        //I did not actually place a true string at the end of it since that would require more computationally intense comparisons every time
+        for(int i = 0; splitLine[i] != 0; i++)
         {
              //just write every split entry of the CSV file to the worksheet as a number, not a string so that the user can actually manipulate the data as numbers
              worksheet_write_number(worksheet,rowNum,i,atof(splitLine[i]),NULL);
@@ -191,7 +185,7 @@ int main(int argc, char *argv[])
         }
         //free the line since we did some weird memory allocation with it
         free(splitLine);
-
+        //increase the rownum
         rowNum++;
     }
 
@@ -203,7 +197,7 @@ int main(int argc, char *argv[])
     //ending timestamp for debugging purposes
     clock_t end = clock();
     //remove the csv file as we have already created the xlsx so this is not needed anymore
-    remove(csvFile);
+   // remove(csvFile);
     //get the time spent on the execution of the program in seconds
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
     //print out how long it took to execute the program
